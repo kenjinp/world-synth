@@ -1,0 +1,8 @@
+config:
+  aws:region: us-west-2
+  world-synth.kenny.wtf:path: ../../_dist
+  world-synth.kenny.wtf:zoneName: kenny.wtf
+  world-synth.kenny.wtf:targetDomain: world-synth.kenny.wtf
+  world-synth.kenny.wtf:includeWWW: true
+  world-synth.kenny.wtf:errorDocument: 404.html
+  world-synth.kenny.wtf:indexDocument: index.html

@@ -1,0 +1,40 @@
+{
+  "name": "examples",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:strict": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-spring/web": "^9.7.3",
+    "glslify": "^7.1.1",
+    "onnxruntime-web": "^1.16.3",
+    "poisson-disk-sampling": "^2.3.1",
+    "react-router-dom": "^6.18.0",
+    "three-csm": "^4.2.1",
+    "ts-pattern": "^5.0.6",
+    "tunnel-rat": "^0.1.2"
+  },
+  "devDependencies": {
+    "@types/poisson-disk-sampling": "^2.2.4",
+    "@types/react-dom": "18.2.0",
+    "@types/react-router-dom": "^5.3.3",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitejs/plugin-react-swc": "^3.3.2",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5",
+    "vite-plugin-glsl": "^1.2.0",
+    "vite-plugin-static-copy": "^1.0.0",
+    "vite-plugin-svgr": "^4.2.0",
+    "vite-svg-loader": "^5.1.0"
+  }
+}
