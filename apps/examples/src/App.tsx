@@ -1,6 +1,7 @@
 import React from "react"
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 
+import { OrbitCamera } from "@hello-worlds/react"
 import { Leva } from "leva"
 import { Canvas } from "./components/Canvas"
 import { ExampleWrapper } from "./components/ExampleWrapper"
@@ -40,7 +41,7 @@ const App: React.FC = () => {
                 </div>
 
                 <Canvas>
-                  <ExampleWrapper>
+                  <ExampleWrapper controls={OrbitCamera}>
                     <route.component />
                   </ExampleWrapper>
                 </Canvas>

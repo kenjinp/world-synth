@@ -1,5 +1,5 @@
-# `@terrain-synth/core`
+# `@world-synth/core`
 
-Core helpers and utils used across `@terrain-synth`
+Core helpers and utils used across `@world-synth`
 
 ## Docs

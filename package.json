@@ -13,10 +13,7 @@
     "build": "turbo run build --filter=./packages/*",
     "preinstall": "npx only-allow pnpm",
     "test": "jest --passWithNoTests",
-    "deliver": "pnpm --filter=!docs build && pnpm -r test",
-    "ci:version": "changeset version && pnpm install --no-frozen-lockfile",
-    "ci:release": "pnpm deliver && pnpm changeset publish",
-    "ship:docs": "flyctl deploy ./ --build-arg LIVEBLOCKS_API_KEY=$LIVEBLOCKS_API_KEY -c apps/docs/fly.toml --dockerfile=./apps/docs/Dockerfile"
+    "ship": "pulumi up -C=./infra/pulumi -s=dev --yes --skip-preview"
   },
   "dependencies": {
     "@hello-worlds/core": "^0.0.9",

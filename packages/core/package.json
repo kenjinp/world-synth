@@ -1,5 +1,5 @@
 {
-  "name": "@terrain-synth/core",
+  "name": "@world-synth/core",
   "version": "0.0.0",
   "license": "MIT",
   "main": "dist/cjs/index.js",

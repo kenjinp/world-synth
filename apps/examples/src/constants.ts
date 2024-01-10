@@ -23,5 +23,5 @@ declare const __BUILD_INFO__: {
   buildTime: number
 }
 
-export const COMMIT_INFO = "__COMMIT_INFO__"
-export const BUILD_INFO = "__BUILD_INFO__"
+export const COMMIT_INFO = __COMMIT_INFO__
+export const BUILD_INFO = __BUILD_INFO__

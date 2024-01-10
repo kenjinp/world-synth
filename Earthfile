@@ -29,6 +29,6 @@ pulumi-node:
 
 deploy:
   FROM +pulumi-node
-  ARG STACK="terrain-synth/dev"
+  ARG STACK="world-synth/dev"
   COPY +build/_dist ./_dist
   RUN --secret PULUMI_ACCESS_TOKEN --secret AWS_ACCESS_KEY_ID --secret AWS_SECRET_ACCESS_KEY /root/.pulumi/bin/pulumi up -C=./infra/pulumi -s=dev --yes --skip-preview

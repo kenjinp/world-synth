@@ -1,3 +1,4 @@
+import { EARTH_RADIUS } from "@hello-worlds/planets"
 import { CameraControls } from "@react-three/drei"
 import * as React from "react"
 import { DirectionalLight, Object3D, Vector3 } from "three"
@@ -24,16 +25,16 @@ const lightTarget = new Vector3(0, 0, 0)
 
 export const ExampleWrapper: React.FC<
   React.PropsWithChildren<{
-    controls?: React.ReactNode
+    controls?: React.FC
   }>
 > = ({
   children,
   controls = (
     <CameraControls
       makeDefault
-      maxZoom={1_000}
+      maxZoom={EARTH_RADIUS * 4}
       minZoom={100}
-      maxDistance={15_000}
+      maxDistance={EARTH_RADIUS * 4}
       minPolarAngle={20 * (Math.PI / 180)}
       maxPolarAngle={80 * (Math.PI / 180)}
     />

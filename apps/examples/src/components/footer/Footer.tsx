@@ -8,7 +8,7 @@ export const Footer: React.FC<React.PropsWithChildren> = ({ children }) => {
         version{" "}
         <a
           title="commit hash"
-          href={`https://github.com/kenjinp/terrain-synth/commit/${COMMIT_INFO.hash}`}
+          href={`https://github.com/kenjinp/world-synth/commit/${COMMIT_INFO.hash}`}
         >
           {COMMIT_INFO.shortHash}
         </a>{" "}
