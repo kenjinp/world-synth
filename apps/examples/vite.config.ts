@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["@hello-worlds/planets", "@hello-worlds/react"],
+    exclude: ["@hello-worlds/planets", "@hello-worlds/react", "h3-js"],
   },
   build: {
     outDir: "../../_dist",

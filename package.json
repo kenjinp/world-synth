@@ -9,8 +9,8 @@
   "scripts": {
     "start": "pnpm dev",
     "dev": "turbo run dev --filter=examples",
-    "build:examples": "turbo run build --filter=examples",
-    "build": "turbo run build --filter=./packages/*",
+    "build": "turbo run build --filter=examples",
+    "build:packages": "turbo run build --filter=./packages/*",
     "preinstall": "npx only-allow pnpm",
     "test": "jest --passWithNoTests",
     "ship": "pulumi up -C=./infra/pulumi -s=dev --yes --skip-preview"
