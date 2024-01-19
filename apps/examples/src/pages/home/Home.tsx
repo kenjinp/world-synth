@@ -194,14 +194,12 @@ export default () => {
               vec3 wPosition = (vModelMatrix * vec4(vPosition, 1.0)).xyz;
               LatLong latlong = getLatLong(wPosition, radius);
               float lineWidth = uLineWidth;
+              float latRepititions = 18.;
+              float lonRepititions = 36.;
               vec2 latlongUV = vec2(
-                remap(latlong.lat, -90., 90., 0., 1.) * 18.,
-                remap(latlong.lon, -180., 180., 0., 1.) * 36.
+                remap(latlong.lat, -90., 90., 0., 1.) * latRepititions,
+                remap(latlong.lon, -180., 180., 0., 1.) * lonRepititions
               );
-              
-              // float normalizedDistanceToCamera = distance(uCameraPosition, vec3(0.0)) / radius * 10.\
-              // ;
-              // float nCam = 1.0 - min(normalizedDistanceToCamera, 1.0);
 
               // contour line stuff
               float contourWidth = uContourWidth;
