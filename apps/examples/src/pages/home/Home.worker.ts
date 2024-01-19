@@ -1,21 +1,23 @@
 import {
   ChunkGenerator3Initializer,
   ColorArrayWithAlpha,
-  createThreadedPlanetWorker,
   DEFAULT_NOISE_PARAMS,
   LatLong,
   Lerp,
   LinearSpline,
   Noise,
+  createThreadedPlanetWorker,
   remap,
 } from "@hello-worlds/planets"
-import { Color, Line3, Vector3 } from "three"
+import { Color, Line3, MathUtils, Vector3 } from "three"
 import { SphereGrid } from "../../lib/sphere-grid/SphereGrid"
+import { VoronoiSphere, getDistanceToVoronoiPolygonEdge } from "./math/Voronoi"
 import { Crater, craterHeight } from "./math/crater"
 
 export type ThreadParams = {
   seed: string
   sphereGrid: SphereGrid
+  voronoiSphere: VoronoiSphere
   craters: Crater[]
 }
 
@@ -37,10 +39,10 @@ const distanceToSegment = (position: Vector3, a: Vector3, b: Vector3) => {
 let sphereGrid: SphereGrid
 const heightGenerator: ChunkGenerator3Initializer<ThreadParams, number> = ({
   radius,
-  data: { seed, craters, sphereGrid: _sphereGrid },
+  data: { seed, craters, sphereGrid: _sphereGrid, voronoiSphere },
 }) => {
   sphereGrid = SphereGrid.deserialize(_sphereGrid)
-  console.log({ sphereGrid })
+  voronoiSphere.sphereGrid = SphereGrid.deserialize(voronoiSphere.sphereGrid)
 
   const terrainNoise = new Noise({
     ...DEFAULT_NOISE_PARAMS,
@@ -62,6 +64,19 @@ const heightGenerator: ChunkGenerator3Initializer<ThreadParams, number> = ({
   const naiive = false
 
   return ({ input }) => {
+    const latlong = tempLatLongA.cartesianToLatLong(input)
+    const voronoiPolygonIds = voronoiSphere.sphereGrid.findObjects(latlong)
+    if (voronoiPolygonIds?.length) {
+      const closestIndex = voronoiPolygonIds[0]
+      const numberIndex = Number(closestIndex)
+      const polygon = voronoiSphere.voronoiPolygons[numberIndex]
+      return getDistanceToVoronoiPolygonEdge(latlong, polygon, radius)
+    } else {
+      console.warn("No voronoi polygon found")
+    }
+
+    return 0
+
     const terrainNoiseValue = terrainNoise.getFromVector(input)
     let height = terrainNoiseValue
     if (naiive) {
@@ -171,19 +186,86 @@ function createColorSplineFromColorElevation(colorElevation: ColorElevation[]) {
   return colorSpline
 }
 
+function calculateSphericalDistance(
+  latlong1: LatLong,
+  latlong2: LatLong,
+): number {
+  const lat1 = latlong1.lat
+  const lon1 = latlong1.lon
+  const lat2 = latlong2.lat
+  const lon2 = latlong2.lon
+  const earthRadius = 6371 // Radius of the Earth in kilometers
+
+  // Convert latitude and longitude from degrees to radians
+  const lat1Rad = (lat1 * Math.PI) / 180
+  const lon1Rad = (lon1 * Math.PI) / 180
+  const lat2Rad = (lat2 * Math.PI) / 180
+  const lon2Rad = (lon2 * Math.PI) / 180
+
+  // Haversine formula
+  const dLat = lat2Rad - lat1Rad
+  const dLon = lon2Rad - lon1Rad
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(dLon / 2) ** 2
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  // Calculate the distance in kilometers
+  const distance = earthRadius * c
+
+  return distance
+}
+
 const colorGenerator: ChunkGenerator3Initializer<
   ThreadParams,
   Color | ColorArrayWithAlpha
-> = ({ radius, data: { seed, craters } }) => {
+> = ({ radius, data: { voronoiSphere } }) => {
   const colors = createColorSplineFromColorElevation(moonColors)
-  const color = new Color(Math.random() * 0xffffff)
-  // const color = new Color(0xffffff)
+  const color = new Color("blue")
   const tempLatLong = new LatLong()
   const tempLatLongA = new LatLong()
   const tempLatLongB = new LatLong()
   const tempVec3 = new Vector3()
   let max = 0
+
   return ({ worldPosition, height }) => {
+    const currentLatLong = tempLatLong.cartesianToLatLong(worldPosition)
+    const voronoiPolygonIds =
+      voronoiSphere.sphereGrid.findObjects(currentLatLong)
+    if (voronoiPolygonIds?.length) {
+      const closestIndex = voronoiPolygonIds[0]
+      const numberIndex = Number(closestIndex)
+      // const polygon = voronoiSphere.voronoiPolygons[numberIndex]
+      return color.set(MathUtils.seededRandom(numberIndex) * 0xffffff)
+    } else {
+      console.warn("No voronoi polygon found")
+    }
+
+    // voronoiSphere.voronoiPolygons.sort((a, b) => {
+    //   const aDistance = calculateSphericalDistance(
+    //     tempLatLongA.set(
+    //       a.properties.site.coordinates[1],
+    //       a.properties.site.coordinates[0],
+    //     ),
+    //     currentLatLong,
+    //   )
+    //   const bDistance = calculateSphericalDistance(
+    //     tempLatLongB.set(
+    //       b.properties.site.coordinates[1],
+    //       b.properties.site.coordinates[0],
+    //     ),
+    //     currentLatLong,
+    //   )
+    //   return aDistance - bDistance
+    // })
+
+    // const closestRNG = MathUtils.seededRandom(
+    //   voronoiSphere.voronoiPolygons[0].properties.site.coordinates[0] +
+    //     voronoiSphere.voronoiPolygons[0].properties.site.coordinates[1],
+    // )
+    // const closestColor = color.set(closestRNG * 0xffffff)
+    // return closestColor
+
     return colors.get(remap(height, 0, 2_000_000, 0, 1))
 
     const latLong = tempLatLong.cartesianToLatLong(worldPosition)

@@ -1,5 +1,5 @@
 import { LatLong } from "@hello-worlds/planets"
-import { latLngToCell } from "h3-js"
+import { latLngToCell, polygonToCells } from "h3-js"
 import { Vector3 } from "three"
 import { kRingIndexesArea } from "./h3-utils"
 
@@ -13,6 +13,26 @@ export class SphereGrid {
     this.radius = radius
     this.resolution = resolution
     this.sphereOffset = sphereOffset || this.sphereOffset
+  }
+
+  insertPolygon(objectKey: string, polygon: LatLong[]) {
+    try {
+      const polygonHexes = polygonToCells(
+        polygon.map(latLong => [latLong.lat, latLong.lon]),
+        this.resolution,
+      )
+
+      for (const cell of polygonHexes) {
+        const currentCells = this.cells.get(cell) || []
+        if (currentCells.includes(objectKey)) {
+          continue
+        }
+        currentCells.push(objectKey)
+        this.cells.set(cell, currentCells)
+      }
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   insert(objectKey: string, objectPosition: LatLong, objectRadius: number) {
@@ -46,8 +66,8 @@ export class SphereGrid {
     return resultingKeys
   }
 
-  findObjects(center: LatLong): string[] | undefined {
-    const h3Index = latLngToCell(center.lat, center.lon, this.resolution)
+  findObjects(latLong: LatLong): string[] | undefined {
+    const h3Index = latLngToCell(latLong.lat, latLong.lon, this.resolution)
     const cell = this.cells.get(h3Index)
     return cell
   }

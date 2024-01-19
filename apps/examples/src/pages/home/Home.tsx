@@ -7,7 +7,7 @@ import {
 } from "@hello-worlds/planets"
 import { OrbitCamera, Planet } from "@hello-worlds/react"
 import { useThree } from "@react-three/fiber"
-import { Color, MeshPhysicalMaterial, Vector3 } from "three"
+import { Color, MeshBasicMaterial, Vector3 } from "three"
 
 import { random, randomRange, setRandomSeed } from "@hello-worlds/core"
 import { useControls } from "leva"
@@ -16,6 +16,7 @@ import CustomShaderMaterial from "three-custom-shader-material"
 import { ChunkDebugger } from "../../components/ChunkDebugger"
 import { SphereGrid } from "../../lib/sphere-grid/SphereGrid"
 import Worker from "./Home.worker?worker"
+import { VoronoiSphere } from "./math/Voronoi"
 import { Crater } from "./math/crater"
 
 const worker = () => new Worker()
@@ -24,38 +25,50 @@ export default () => {
   const planet = useRef<HelloPlanet<any>>(null)
   const seed = "plate tectonics example"
   const radius = EARTH_RADIUS
-  const { resolution, lineWidth, contourWidth, contourAlpha, subgridAlpha } =
-    useControls({
-      resolution: {
-        value: 3,
-        min: 0,
-        max: 10,
-        step: 1,
-      },
-      lineWidth: {
-        value: 1,
-        min: 1,
-        max: 10,
-      },
-      contourAlpha: {
-        value: 0,
-        min: 0,
-        max: 1,
-        step: 0.1,
-      },
-      subgridAlpha: {
-        value: 0,
-        min: 0,
-        max: 1,
-        step: 0.1,
-      },
-      contourWidth: {
-        value: 5000,
-        min: 500,
-        max: 10_0000,
-        step: 500,
-      },
-    })
+  const {
+    resolution,
+    lineWidth,
+    contourWidth,
+    contourAlpha,
+    subgridAlpha,
+    numberOfVoronoi,
+  } = useControls({
+    resolution: {
+      value: 3,
+      min: 0,
+      max: 10,
+      step: 1,
+    },
+    lineWidth: {
+      value: 1,
+      min: 1,
+      max: 10,
+    },
+    contourAlpha: {
+      value: 0,
+      min: 0,
+      max: 1,
+      step: 0.1,
+    },
+    subgridAlpha: {
+      value: 0,
+      min: 0,
+      max: 1,
+      step: 0.1,
+    },
+    contourWidth: {
+      value: 5000,
+      min: 500,
+      max: 10_0000,
+      step: 500,
+    },
+    numberOfVoronoi: {
+      value: 100,
+      min: 1,
+      max: 5000,
+      step: 1,
+    },
+  })
 
   const data = useMemo(() => {
     setRandomSeed(seed)
@@ -64,6 +77,7 @@ export default () => {
     const craterAmount = 10_000
     const jitter = 1
     const sphereGrid = new SphereGrid(radius, resolution)
+    const voronoiSphereGrid = new SphereGrid(radius, resolution)
     // console.time("craters")
     const craters: Crater[] = fibonacciSphere(craterAmount, jitter, random).map(
       (latLong, index) => {
@@ -87,14 +101,12 @@ export default () => {
     // console.timeEnd("craters")
 
     return {
-      voronoi: "blah",
+      voronoiSphere: new VoronoiSphere(numberOfVoronoi, voronoiSphereGrid),
       sphereGrid: sphereGrid.serialize(),
       craters,
       seed,
     }
-  }, [resolution])
-
-  console.log(data)
+  }, [resolution, numberOfVoronoi])
 
   return (
     <group>
@@ -126,7 +138,7 @@ export default () => {
             uSubgridAlpha: { value: subgridAlpha },
             uContourAlpha: { value: contourAlpha },
           }}
-          baseMaterial={MeshPhysicalMaterial}
+          baseMaterial={MeshBasicMaterial}
           vertexShader={
             /* glsl */ `
             varying mat4 vModelMatrix;
