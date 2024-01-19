@@ -41,35 +41,44 @@ const heightGenerator: ChunkGenerator3Initializer<ThreadParams, number> = ({
 }) => {
   sphereGrid = SphereGrid.deserialize(_sphereGrid)
   console.log({ sphereGrid })
-  const resolution = 4
 
   const terrainNoise = new Noise({
     ...DEFAULT_NOISE_PARAMS,
     seed,
     height: radius / 10,
-    scale: radius / 2,
+    scale: radius,
   })
   const craterNoise = new Noise({
     ...DEFAULT_NOISE_PARAMS,
     seed,
-    height: 500_000,
-    scale: 500_000,
+    height: 50_000,
+    scale: radius / 20,
   })
   const tempVector3A = new Vector3()
 
   const tempLatLongA = new LatLong()
   const tempLatLongB = new LatLong()
   const tempVector3B = new Vector3()
+  const naiive = false
 
   return ({ input }) => {
     const terrainNoiseValue = terrainNoise.getFromVector(input)
     let height = terrainNoiseValue
-    const latLong = tempLatLongA.cartesianToLatLong(input)
-    const results = sphereGrid.findObjects(latLong)
-    if (results?.length) {
-      const craterList = results.map(key => craters[parseInt(key)])
-      height += craterHeight(input, craterList, radius, craterNoise)
+    if (naiive) {
+      if (craters?.length) {
+        // const craterList = creater.map(key => craters[parseInt(key)])
+        // for (const [craterLatitude, craterLongitude, craterRadius] of craters) {
+        height += craterHeight(input, craters, radius, craterNoise)
+      }
+    } else {
+      const latLong = tempLatLongA.cartesianToLatLong(input)
+      const results = sphereGrid.findObjects(latLong)
+      if (results?.length) {
+        const craterList = results.map(key => craters[parseInt(key)])
+        height += craterHeight(input, craterList, radius, craterNoise)
+      }
     }
+
     // const latLong = LatLong.cartesianToLatLong(input)
 
     // const h3Index = latLngToCell(latLong.lat, latLong.lon, resolution)
@@ -167,38 +176,56 @@ const colorGenerator: ChunkGenerator3Initializer<
   Color | ColorArrayWithAlpha
 > = ({ radius, data: { seed, craters } }) => {
   const colors = createColorSplineFromColorElevation(moonColors)
-  // const color = new Color(Math.random() * 0xffffff)
-  const color = new Color(0xffffff)
+  const color = new Color(Math.random() * 0xffffff)
+  // const color = new Color(0xffffff)
   const tempLatLong = new LatLong()
+  const tempLatLongA = new LatLong()
+  const tempLatLongB = new LatLong()
   const tempVec3 = new Vector3()
+  let max = 0
   return ({ worldPosition, height }) => {
     return colors.get(remap(height, 0, 2_000_000, 0, 1))
 
-    // const latLong = tempLatLong.cartesianToLatLong(worldPosition)
-    // const results = sphereGrid.findObjects(latLong)
-    // if (results?.length) {
-    //   for (const index in results) {
-    //     const crater = craters[parseInt(index)]
-    //     // const craterCenter = tempLatLong
-    //     //   .set(crater.center.lat, crater.center.lon)
-    //     //   .toCartesian(radius, tempVec3)
-    //     // const d = worldPosition.distanceTo(craterCenter)
-    //     // if (d < crater.radius) {
-    //     //   color.set(crater.debugColor)
-    //     //   return color
-    //     // }
-    //     // color.copy(crater.debugColor)
-    //     color.copy(crater.debugColor)
-    //     // color.set("red")
-    //     // //  color.set(crater.debugColor)
-    //     // return color
-    //   }
+    const latLong = tempLatLong.cartesianToLatLong(worldPosition)
+    const results = sphereGrid.findObjects(latLong)
 
-    //   // return color
-    // } else {
-    //   color.set(0xffffff)
-    // }
-    // return color
+    if (results?.length) {
+      max = Math.max(max, results.length)
+      const colorR = remap(results.length, 0, max, 0, 1)
+      const colorB = remap(results.length, 0, max, 1, 0)
+      return [colorR, 0, colorB, 1]
+      // const sortedCraterList = []
+      // for (const index in results) {
+      //   const crater = craters[parseInt(index)]
+      //   sortedCraterList.push(crater)
+
+      //   // const craterCenter = tempLatLong
+      //   //   .set(crater.center.lat, crater.center.lon)
+      //   //   .toCartesian(radius, tempVec3)
+      //   // const d = worldPosition.distanceTo(craterCenter)
+      //   // if (d < crater.radius) {
+      //   //   color.set(crater.debugColor)
+      //   //   return color
+      //   // }
+      //   // color.copy(crater.debugColor)
+      //   // color.copy(crater.debugColor)
+      //   // color.set("red")
+      //   // //  color.set(crater.debugColor)
+      //   // return color
+      // }
+      // sortedCraterList.sort((a, b) => {
+      //   const aDistance = tempLatLongA.copy(a.center).distanceTo(latLong)
+      //   const bDistance = tempLatLongB.copy(b.center).distanceTo(latLong)
+      //   return aDistance - bDistance
+      // })
+      // const closestCrater = sortedCraterList[0]
+      // return [...color.copy(closestCrater.debugColor).toArray(), 0]
+
+      // return color
+    } else {
+      color.set(0xffffff)
+    }
+    return color
   }
 }
 

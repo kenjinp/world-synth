@@ -31,6 +31,9 @@ export const craterHeight = (
       .toCartesian(planetRadius, tempVec3)
 
     const dist = input.distanceTo(centerVec3) + noiseHeight
+    if (dist > radius * 3) {
+      continue
+    }
     const x = dist / radius
 
     // crazy snaky terrace stuff
@@ -39,7 +42,6 @@ export const craterHeight = (
     // )
 
     const cavity = x * x - 1
-
     const rimX = Math.min(x - 1 - rimWidth, 0)
     const rim = rimSteepness * rimX * rimX
     let craterShape = smoothMax(cavity, floorHeight, smoothness)
