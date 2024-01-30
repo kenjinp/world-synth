@@ -7,11 +7,11 @@ import {
 import { Color } from "three"
 import { seededRandom } from "three/src/math/MathUtils"
 import { Geology } from "./model/geology/Geology"
-import { IGeology, PlateType } from "./model/geology/Geology.types"
+import { PlateType } from "./model/geology/Geology.types"
 
 export type ThreadParams = {
   seed: string
-  geology: IGeology
+  geology: Geology
 }
 
 let globalGeology: Geology
@@ -42,10 +42,10 @@ const colorGenerator: ChunkGenerator3Initializer<
     if (plate && region) {
       plateColor.set(seededRandom(plate.id) * 0xffffff)
       if (region.type === PlateType.Continental) {
-        plateColor.lerp(lerpColor.set(0x00ff00), 0.9)
+        plateColor.lerp(lerpColor.set(0x175515), 0.9)
       }
       if (region.type === PlateType.Oceanic) {
-        plateColor.lerp(lerpColor.set(0x0000ff), 0.9)
+        plateColor.lerp(lerpColor.set(0x2d75b0), 0.9)
       }
       return plateColor
     }

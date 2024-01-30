@@ -1,6 +1,5 @@
 import { randomRange } from "@hello-worlds/core"
 import { Vector3 } from "three"
-import { SphericalPolygon } from "../../math/SphericalPolygon"
 import { IPlate, IRegion, PlateType } from "./Geology.types"
 import { Region } from "./Region"
 
@@ -43,9 +42,9 @@ export class Plate implements IPlate {
     this.#neighbors.delete(region.id)
   }
 
-  mergeRegionsIntoPolygon() {
-    this.shape = SphericalPolygon.fromH3Cells(this.regions.map(r => r.id))
-  }
+  // mergeRegionsIntoPolygon() {
+  //   this.shape = SphericalPolygon.fromH3Cells(this.regions.map(r => r.id))
+  // }
 
   getArea() {
     let area = 0

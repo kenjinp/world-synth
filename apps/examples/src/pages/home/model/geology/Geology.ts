@@ -2,10 +2,10 @@ import { setRandomSeed } from "@hello-worlds/core"
 import { EARTH_RADIUS, LatLong, Noise } from "@hello-worlds/planets"
 import { MathUtils, Vector3 } from "three"
 import { generate } from "./Geology.generate"
-import { GeologyParams } from "./Geology.old"
 import {
   GeologyEventCallback,
   GeologyEventType,
+  GeologyParams,
   IContinent,
   IGeology,
   IOcean,

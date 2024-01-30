@@ -30,9 +30,6 @@ export const GeologyDebug: React.FC = () => {
         <div>
         <p>${latLong.lat.toFixed(4)}°, ${latLong.lon.toFixed(4)}°</p>
         <p>
-            Hex: ${h3Index}
-          </p>
-        <p>
             Region: ${region.id}
           </p>
           <p>
@@ -40,7 +37,7 @@ export const GeologyDebug: React.FC = () => {
           </p>
           <p>
           <p>
-           Crust Type: {region.data.type}
+           Crust Type: ${region.type}
           </p>
         </div>
         `
@@ -48,9 +45,6 @@ export const GeologyDebug: React.FC = () => {
         regionDebugDisplay.innerHTML = `
         <div>
         <p>${latLong.lat.toFixed(4)}°, ${latLong.lon.toFixed(4)}°</p>
-        <p>
-            Hex: ${h3Index}
-          </p>
          <p>
             Region: None
           </p>

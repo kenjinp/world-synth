@@ -5,26 +5,15 @@ import { MeshBasicMaterial, MeshStandardMaterial } from "three"
 
 import { setRandomSeed } from "@hello-worlds/core"
 import { useControls } from "leva"
-import { useEffect, useMemo, useRef } from "react"
+import { useMemo, useRef } from "react"
 import CustomShaderMaterial from "three-custom-shader-material"
 import { ChunkDebugger } from "../../components/ChunkDebugger"
 import Worker from "./Home.worker?worker"
 import { Geology } from "./model/geology/Geology"
 import { GeologyDebug } from "./model/geology/Geology.debug"
-import { GeologyProvider, useGeology } from "./model/geology/Geology.provider"
+import { GeologyProvider } from "./model/geology/Geology.provider"
 
 const worker = () => new Worker()
-
-const Generate = () => {
-  const geology = useGeology()
-  useEffect(() => {
-    if (!geology.generated) {
-      geology.generate()
-      console.log({ geology })
-    }
-  }, [geology])
-  return null
-}
 
 export default () => {
   const camera = useThree(state => state.camera)

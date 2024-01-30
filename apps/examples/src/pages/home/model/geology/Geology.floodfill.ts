@@ -62,6 +62,7 @@ export function floodfillPlates(
     const noise = costNoise.getFromVector(cart)
 
     // promote closeness vs distance
+    // lower score is better
     const calculateDistanceScore = () => {
       const cartStart = startingRegionLatLong.toCartesian(
         geology.params.radius,
@@ -72,7 +73,8 @@ export function floodfillPlates(
       return normalizedDistance
     }
 
-    // promote regions are in the same direction as
+    // promote similarity of desired bearing
+    // lower score is better
     const calculateBiasDirectionScore = () => {
       const desiredBearing = plate.plateGrowthBiasBearing
 

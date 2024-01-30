@@ -1,11 +1,6 @@
 import { LatLong } from "@hello-worlds/planets"
 import { Vector3 } from "three"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
-import { Plate } from "./Plate.old"
-
-export interface ISerializedGeology {
-  plates: Plate[]
-}
 
 export enum GeologyEventType {
   Generate = "Generate",
