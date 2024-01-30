@@ -6,7 +6,7 @@ import { Leva } from "leva"
 import { Canvas } from "./components/Canvas"
 import { ExampleWrapper } from "./components/ExampleWrapper"
 import { Footer } from "./components/footer/Footer"
-import Basic from "./pages/home/Home"
+import Home from "./pages/home/Home"
 import { UI } from "./tunnel"
 
 interface IRoute {
@@ -17,9 +17,9 @@ interface IRoute {
 
 const routes: IRoute[] = [
   {
-    name: "Basic",
+    name: "Home",
     path: "/",
-    component: Basic,
+    component: Home,
   },
 ]
 

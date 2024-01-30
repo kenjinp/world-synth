@@ -12,12 +12,16 @@
   },
   "dependencies": {
     "@react-spring/web": "^9.7.3",
+    "@turf/turf": "7.0.0-alpha.2",
     "d3-geo-voronoi": "^2.0.1",
     "glslify": "^7.1.1",
     "h3-js": "^4.1.0",
     "onnxruntime-web": "^1.16.3",
     "poisson-disk-sampling": "^2.3.1",
+    "polyclip-ts": "^0.16.3",
+    "react-reconciler": "^0.29.0",
     "react-router-dom": "^6.18.0",
+    "rtree": "^1.4.2",
     "three-csm": "^4.2.1",
     "ts-pattern": "^5.0.6",
     "tunnel-rat": "^0.1.2"
@@ -25,7 +29,9 @@
   "devDependencies": {
     "@types/poisson-disk-sampling": "^2.2.4",
     "@types/react-dom": "18.2.0",
+    "@types/react-reconciler": "^0.28.8",
     "@types/react-router-dom": "^5.3.3",
+    "@types/rtree": "^1.4.30",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "@vitejs/plugin-react-swc": "^3.3.2",

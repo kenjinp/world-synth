@@ -65,7 +65,6 @@ export const ChunkScatter: FC<ChunkScatterProps> = ({ targetLOD }) => {
 
   // so now we have the heightmaps, we can iterate over them and create a scatter map for each one
   useEffect(() => {
-    console.log("hello")
     targetChunks.map(chunk => {
       if (!chunk.heightmap) return
       const chunkKey = makeChunkHash(chunk)

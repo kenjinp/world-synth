@@ -1,29 +1,34 @@
-import {
-  EARTH_RADIUS,
-  Planet as HelloPlanet,
-  LatLong,
-  fibonacciSphere,
-  getRandomBias,
-} from "@hello-worlds/planets"
+import { EARTH_RADIUS, Planet as HelloPlanet } from "@hello-worlds/planets"
 import { OrbitCamera, Planet } from "@hello-worlds/react"
 import { useThree } from "@react-three/fiber"
-import { Color, MeshBasicMaterial, Vector3 } from "three"
+import { MeshBasicMaterial, MeshStandardMaterial } from "three"
 
-import { random, randomRange, setRandomSeed } from "@hello-worlds/core"
+import { setRandomSeed } from "@hello-worlds/core"
 import { useControls } from "leva"
-import { useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import CustomShaderMaterial from "three-custom-shader-material"
 import { ChunkDebugger } from "../../components/ChunkDebugger"
-import { SphereGrid } from "../../lib/sphere-grid/SphereGrid"
 import Worker from "./Home.worker?worker"
-import { VoronoiSphere } from "./math/Voronoi"
-import { Crater } from "./math/crater"
+import { Geology } from "./model/geology/Geology"
+import { GeologyDebug } from "./model/geology/Geology.debug"
+import { GeologyProvider, useGeology } from "./model/geology/Geology.provider"
 
 const worker = () => new Worker()
+
+const Generate = () => {
+  const geology = useGeology()
+  useEffect(() => {
+    if (!geology.generated) {
+      geology.generate()
+      console.log({ geology })
+    }
+  }, [geology])
+  return null
+}
+
 export default () => {
   const camera = useThree(state => state.camera)
   const planet = useRef<HelloPlanet<any>>(null)
-  const seed = "plate tectonics example"
   const radius = EARTH_RADIUS
   const {
     resolution,
@@ -31,7 +36,9 @@ export default () => {
     contourWidth,
     contourAlpha,
     subgridAlpha,
-    numberOfVoronoi,
+    numberOfPlates,
+    seed,
+    useShadows,
   } = useControls({
     resolution: {
       value: 3,
@@ -57,69 +64,47 @@ export default () => {
       step: 0.1,
     },
     contourWidth: {
-      value: 5000,
+      value: 500,
       min: 500,
       max: 10_0000,
       step: 500,
     },
-    numberOfVoronoi: {
-      value: 100,
+
+    numberOfPlates: {
+      value: 10,
       min: 1,
-      max: 5000,
+      max: 200,
       step: 1,
     },
+    seed: "hello world!",
+    useShadows: false,
+  })
+  const memoBuster = JSON.stringify({
+    resolution,
+    numberOfPlates,
+    seed,
   })
 
   const data = useMemo(() => {
     setRandomSeed(seed)
-    const tempLatLong = new LatLong()
-    const tempVec3 = new Vector3()
-    const craterAmount = 10_000
-    const jitter = 1
-    const sphereGrid = new SphereGrid(radius, resolution)
-    const voronoiSphereGrid = new SphereGrid(radius, resolution)
-    // console.time("craters")
-    const craters: Crater[] = fibonacciSphere(craterAmount, jitter, random).map(
-      (latLong, index) => {
-        // console.time(`crater ${index}`)
-        const center = latLong
-        const radius = getRandomBias(500, 300_000, 1_000, 0.3)
-
-        sphereGrid.insert(index.toString(), center, radius * 2)
-        // console.timeEnd(`crater ${index}`)
-        return {
-          floorHeight: -10,
-          radius,
-          center,
-          rimWidth: randomRange(0.5, 1),
-          rimSteepness: randomRange(0.01, 0.8),
-          smoothness: randomRange(0.2, 1),
-          debugColor: new Color(random() * 0xffffff),
-        }
-      },
-    )
-    // console.timeEnd("craters")
+    const key = memoBuster
+    const geology = new Geology({
+      seed,
+      numberOfInitialPlates: numberOfPlates,
+    })
+    console.time("Generate Geology")
+    geology.generate()
+    console.timeEnd("Generate Geology")
 
     return {
-      voronoiSphere: new VoronoiSphere(numberOfVoronoi, voronoiSphereGrid),
-      sphereGrid: sphereGrid.serialize(),
-      craters,
+      geology: geology.serialize(),
       seed,
+      key,
     }
-  }, [resolution, numberOfVoronoi])
+  }, [memoBuster])
 
   return (
     <group>
-      {/* <Text
-        position={[0, radius + radius * 0.25, 0]}
-        color="white"
-        anchorX="center"
-        anchorY="middle"
-        fontSize={72}
-        scale={10000}
-      >
-        hello world!
-      </Text> */}
       <Planet
         ref={planet}
         radius={EARTH_RADIUS}
@@ -129,18 +114,19 @@ export default () => {
         worker={worker}
         data={data}
       >
-        <CustomShaderMaterial
-          vertexColors
-          uniforms={{
-            uCameraPosition: { value: camera.position },
-            uLineWidth: { value: lineWidth },
-            uContourWidth: { value: contourWidth },
-            uSubgridAlpha: { value: subgridAlpha },
-            uContourAlpha: { value: contourAlpha },
-          }}
-          baseMaterial={MeshBasicMaterial}
-          vertexShader={
-            /* glsl */ `
+        <GeologyProvider geology={data.geology}>
+          <CustomShaderMaterial
+            vertexColors
+            uniforms={{
+              uCameraPosition: { value: camera.position },
+              uLineWidth: { value: lineWidth },
+              uContourWidth: { value: contourWidth },
+              uSubgridAlpha: { value: subgridAlpha },
+              uContourAlpha: { value: contourAlpha },
+            }}
+            baseMaterial={useShadows ? MeshStandardMaterial : MeshBasicMaterial}
+            vertexShader={
+              /* glsl */ `
             varying mat4 vModelMatrix;
             varying vec3 vPosition;
             varying vec2 vUv;
@@ -152,9 +138,9 @@ export default () => {
             }
 
           `
-          }
-          fragmentShader={
-            /* glsl */ `
+            }
+            fragmentShader={
+              /* glsl */ `
             varying vec3 vPosition;
             varying mat4 vModelMatrix;
             float radius = ${EARTH_RADIUS}.0;
@@ -219,7 +205,7 @@ export default () => {
               float normalizedElevationAboveDatum = elevationAboveDatum / contourWidth;
               float dh = fwidth(normalizedElevationAboveDatum);
               float contourLineWidth = lineWidth * 1.0/sqrt(1.0+dh*dh);
-              float contourGrid = getGridFromFloat(normalizedElevationAboveDatum, 1.0, contourLineWidth);
+              float contourGrid = elevationAboveDatum > 0.0 ? getGridFromFloat(normalizedElevationAboveDatum, 1.0, contourLineWidth) : 0.0;
 
               vec3 color = vColor.xyz;
               
@@ -232,10 +218,14 @@ export default () => {
               csm_DiffuseColor = vec4(mix(color, vec3(1.0), combinedGrid), 1.0);
             }
           `
-          }
-        />
-        <ChunkDebugger />
-        <OrbitCamera />
+            }
+          />
+          <ChunkDebugger />
+          <OrbitCamera />
+          <GeologyDebug />
+          {/* <GeologyProgress /> */}
+          {/* <Generate /> */}
+        </GeologyProvider>
       </Planet>
     </group>
   )

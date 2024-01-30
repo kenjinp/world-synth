@@ -4,10 +4,10 @@ import { Vector3 } from "three"
 import { kRingIndexesArea } from "./h3-utils"
 
 export class SphereGrid {
-  private cells: Map<string, string[]> = new Map()
-  private radius: number
-  private resolution: number
-  private sphereOffset: Vector3 = new Vector3()
+  public cells: Map<string, Set<string>> = new Map()
+  public radius: number
+  public resolution: number
+  public sphereOffset: Vector3 = new Vector3()
 
   constructor(radius: number, resolution: number, sphereOffset?: Vector3) {
     this.radius = radius
@@ -15,6 +15,7 @@ export class SphereGrid {
     this.sphereOffset = sphereOffset || this.sphereOffset
   }
 
+  // This doesn't appear to work for lattitude > 85degrees
   insertPolygon(objectKey: string, polygon: LatLong[]) {
     try {
       const polygonHexes = polygonToCells(
@@ -22,12 +23,13 @@ export class SphereGrid {
         this.resolution,
       )
 
+      if (polygonHexes.length === 0) {
+        throw new Error("No hexes found")
+      }
+
       for (const cell of polygonHexes) {
-        const currentCells = this.cells.get(cell) || []
-        if (currentCells.includes(objectKey)) {
-          continue
-        }
-        currentCells.push(objectKey)
+        const currentCells = this.cells.get(cell) || new Set()
+        currentCells.add(objectKey)
         this.cells.set(cell, currentCells)
       }
     } catch (error) {
@@ -44,11 +46,8 @@ export class SphereGrid {
     )
 
     for (const cell of nearbyCells) {
-      const currentCells = this.cells.get(cell) || []
-      if (currentCells.includes(objectKey)) {
-        continue
-      }
-      currentCells.push(objectKey)
+      const currentCells = this.cells.get(cell) || new Set()
+      currentCells.add(objectKey)
       this.cells.set(cell, currentCells)
     }
   }
@@ -69,7 +68,7 @@ export class SphereGrid {
   findObjects(latLong: LatLong): string[] | undefined {
     const h3Index = latLngToCell(latLong.lat, latLong.lon, this.resolution)
     const cell = this.cells.get(h3Index)
-    return cell
+    return cell ? Array.from(cell) : undefined
   }
 
   serialize() {
