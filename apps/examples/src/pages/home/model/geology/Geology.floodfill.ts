@@ -9,8 +9,16 @@ import { Region } from "./Region"
 const vecA = new Vector3()
 const vecB = new Vector3()
 
-const NOISE_VALUE = 2.0
-const MAX_COST = 1.0
+function normalizeAngleDifference(angle1: number, angle2: number): number {
+  let angleDifference = Math.abs(angle1 - angle2)
+  // Normalize the angle difference to the range [-180, 180] degrees
+  angleDifference = ((((angleDifference + 180) % 360) + 360) % 360) - 180
+
+  // Calculate the normalized value between 0 and 1
+  const normalizedValue = (angleDifference + 180) / 360
+
+  return normalizedValue
+}
 
 type QueueItem = { region?: IRegion; plate: IPlate }
 
@@ -72,8 +80,10 @@ export function floodfillPlates(
         [regionLatLong.lon, regionLatLong.lat],
         [startingRegionLatLong.lon, startingRegionLatLong.lat],
       )
-      const normalizedBearingDifference =
-        Math.abs(bearing - desiredBearing) / 360
+      const normalizedBearingDifference = normalizeAngleDifference(
+        desiredBearing,
+        bearing,
+      )
       return normalizedBearingDifference
     }
 
