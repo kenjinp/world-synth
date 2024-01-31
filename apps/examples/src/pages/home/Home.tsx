@@ -27,6 +27,7 @@ export default () => {
     subgridAlpha,
     numberOfPlates,
     seed,
+    percentOcean,
     useShadows,
   } = useControls({
     resolution: {
@@ -65,6 +66,12 @@ export default () => {
       max: 200,
       step: 1,
     },
+    percentOcean: {
+      value: 0.71,
+      min: 0,
+      max: 1,
+      step: 0.01,
+    },
     seed: "hello world!",
     useShadows: false,
   })
@@ -72,6 +79,7 @@ export default () => {
     resolution,
     numberOfPlates,
     seed,
+    percentOcean,
   })
 
   const data = useMemo(() => {
@@ -80,6 +88,7 @@ export default () => {
     const geology = new Geology({
       seed,
       numberOfInitialPlates: numberOfPlates,
+      percentOcean,
     })
     console.time("Generate Geology")
     geology.generate()
@@ -112,6 +121,7 @@ export default () => {
               uContourWidth: { value: contourWidth },
               uSubgridAlpha: { value: subgridAlpha },
               uContourAlpha: { value: contourAlpha },
+              uRadius: { value: EARTH_RADIUS },
             }}
             baseMaterial={useShadows ? MeshStandardMaterial : MeshBasicMaterial}
             vertexShader={
@@ -138,7 +148,32 @@ export default () => {
             uniform float uSubgridAlpha;
             uniform float uContourAlpha;
             uniform float uContourWidth;
+            uniform float uRadius;
             varying vec2 vUv;
+
+            float haversineDistance(vec3 point1, vec3 point2) {
+                vec3 d = point2 - point1;
+                float a = dot(d, d);
+                float b = 2.0 * uRadius * sqrt(a - dot(d, normalize(point1)) * dot(d, normalize(point2)));
+                return b;
+            }
+
+            // float calculateClosestDistanceToPolygonEdge(vec3 point, vec3[] polygon) {
+            //     float minDistance = 1000000.0; // A large initial value
+
+            //     for (int i = 0; i < polygon.length(); i++) {
+            //         vec3 vertex1 = polygon[i];
+            //         vec3 vertex2 = polygon[(i + 1) % polygon.length()];
+
+            //         // Calculate distance to the line segment formed by vertex1 and vertex2
+            //         float edgeDistance = haversineDistance(point, vertex1) + haversineDistance(point, vertex2);
+
+            //         // Keep track of the minimum distance
+            //         minDistance = min(minDistance, edgeDistance);
+            //     }
+
+            //     return minDistance;
+            // }
 
 
             vec3 grid(vec2 p)

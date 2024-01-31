@@ -29,13 +29,14 @@ export interface IGeology {
   oceans: IOcean[]
   generated: boolean
   params: GeologyParams
+  continentShapes: SphericalPolygon
   addPlate: (plate: IPlate) => void
   addRegion: (region: IRegion) => void
   getPlateFromVector: (position: Vector3) => IPlate | undefined
   getRegionFromVector: (position: Vector3) => IRegion | undefined
   generate: VoidFunction
-  getNormalizedElevationAtCoordinate: (latLon: LatLong) => number
-  getElevationAtCoordinate: (latLon: LatLong) => number
+  // getNormalizedElevationAtCoordinate: (latLon: LatLong) => number
+  // getElevationAtCoordinate: (latLon: LatLong) => number
   getElevationAtVector: (position: Vector3) => number
   copy: (geology: IGeology) => IGeology
   clone: () => IGeology
@@ -69,12 +70,18 @@ export interface IRegion {
 export interface IPlate {
   id: number
   regions: IRegion[]
+  driftAxis: Vector3
+  driftRate: number
+  spinRate: number
+  shape: SphericalPolygon
+  continetalShape: SphericalPolygon
   plateType: PlateType
   initialRegion: IRegion
   plateGrowthBiasBearing: number
   addRegion: (region: IRegion) => void
   getArea: () => number
   getNeighboringRegions: () => IRegion[]
+  calculateMovement: (position: Vector3, radius: number) => Vector3
 }
 
 export interface IContinent {

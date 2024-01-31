@@ -1,6 +1,8 @@
 import { setRandomSeed } from "@hello-worlds/core"
 import { EARTH_RADIUS, LatLong, Noise } from "@hello-worlds/planets"
 import { MathUtils, Vector3 } from "three"
+import { lerp } from "three/src/math/MathUtils"
+import { SphericalPolygon } from "../../math/SphericalPolygon"
 import { generate } from "./Geology.generate"
 import {
   GeologyEventCallback,
@@ -11,6 +13,7 @@ import {
   IOcean,
   IPlate,
   IRegion,
+  PlateType,
 } from "./Geology.types"
 import { Region } from "./Region"
 
@@ -73,12 +76,14 @@ export class Geology implements IGeology {
   private _continents: Map<string, IContinent> = new Map()
   private _oceans: Map<string, IOcean> = new Map()
   private _events: Map<GeologyEventType, Set<GeologyEventCallback>> = new Map()
+  continentShapes: SphericalPolygon = new SphericalPolygon()
   constructor(geologyParams: Partial<GeologyParams> = {}) {
     this.params = {
       ...defaultGeologyParams,
       ...geologyParams,
     } as GeologyParams
     setRandomSeed(this.params.seed || MathUtils.generateUUID())
+    this.id = MathUtils.generateUUID()
   }
 
   generate() {
@@ -87,6 +92,7 @@ export class Geology implements IGeology {
     // floodfill to grow plates until we reach a certain percentage of land
     // form oceanic crust
     // floodfill to grow plates until there's nothing in queue
+    // should prune and devide plates that only have one connection to their host plate
     // form oceanic plates with remaining spaces
     // subdivide plates that are too big
 
@@ -159,34 +165,56 @@ export class Geology implements IGeology {
     return region?.plate
   }
 
-  getNormalizedElevationAtCoordinate(latLon: LatLong) {
-    return 0
-  }
+  // getNormalizedElevationAtCoordinate(latLon: LatLong) {
+  //   return 0
+  // }
 
-  getElevationAtCoordinate(latLon: LatLong) {
-    return 0
-  }
+  // getElevationAtCoordinate(latLon: LatLong) {
+  //   return 0
+  // }
 
   getElevationAtVector(position: Vector3) {
     let { h, baseHeight } = whateverNoise(position)
     const region = this.getRegionFromVector(position)
     const plate = region?.plate
-
-    // if (region && plate) {
-    //   const distanceToCoast = calcDistance(
-    //     currentLatLong,
-    //     geology.continentalPolygon,
-    //   )
-    //   const normalizedDistance = distanceToCoast / this.params.radius
-    //   const x = easeOutQuad(normalizedDistance)
-    //   if (region.type === PlateType.Oceanic) {
-    //     h = baseHeight + lerp(0, -8_000, x)
-    //     return h
-    //   } else {
-    //     h = baseHeight + lerp(0, 10_000, x)
-    //     return h
-    //   }
+    // if (this.continentShapes.shape.length) {
+    // const distanceToCoast = this.continentShapes.distanceToPolygonEdgeVector3(
+    //   position,
+    //   this.continentShapes,
+    // )
+    // const normalizedDistance = distanceToCoast / this.params.radius
+    // const x = easeOutQuad(normalizedDistance)
+    // h = baseHeight + lerp(0, 10_000, x)
+    // return distanceToCoast
     // }
+
+    if (region && plate) {
+      if (region.type === PlateType.Continental && plate.continetalShape) {
+        const distanceToCoast = SphericalPolygon.distanceToPolygonEdgeVector3(
+          position,
+          plate.continetalShape,
+        )
+        if (Number.isFinite(distanceToCoast)) {
+          const normalizedDistance = distanceToCoast / this.params.radius
+          const x = easeOutQuad(normalizedDistance)
+          h = baseHeight + lerp(0, 1000000, x)
+        }
+      }
+
+      //   const distanceToCoast = calcDistance(
+      //     currentLatLong,
+      //     geology.continentalPolygon,
+      //   )
+      //   const normalizedDistance = distanceToCoast / this.params.radius
+      //   const x = easeOutQuad(normalizedDistance)
+      //   if (region.type === PlateType.Oceanic) {
+      //     h = baseHeight + lerp(0, -8_000, x)
+      //     return h
+      //   } else {
+      //     h = baseHeight + lerp(0, 10_000, x)
+      //     return h
+      //   }
+    }
     return h
   }
 
@@ -221,6 +249,7 @@ export class Geology implements IGeology {
       Array.from(oceans.values()).map(o => [o.id.toString(), o]),
     )
     this.generated = geology.generated
+    this.continentShapes = new SphericalPolygon().copy(geology.continentShapes)
     return this
   }
 

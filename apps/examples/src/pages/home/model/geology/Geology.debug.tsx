@@ -2,13 +2,52 @@ import { LatLong } from "@hello-worlds/planets"
 import { Billboard, Line, Text } from "@react-three/drei"
 import { ThreeEvent } from "@react-three/fiber"
 import { latLngToCell } from "h3-js"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Color, MathUtils, Vector3 } from "three"
 import { UI } from "../../../../tunnel"
 import { useGeology } from "./Geology.provider"
 import { RESOLUTION } from "./config"
 
 const tempLatLong = new LatLong()
+
+const Arrow: React.FC<{
+  position: Vector3
+  direction: Vector3
+  color: Color
+  normal: Vector3
+}> = ({ position, direction, color, normal }) => {
+  const positions = useMemo(() => {
+    const baseWidth = 50_000
+    const sideOffset = direction
+      .clone()
+      .cross(normal)
+      .setLength(baseWidth / 2)
+
+    return new Float32Array([
+      ...position.clone().add(sideOffset).toArray(),
+      ...position.clone().add(direction).toArray(),
+      ...position.clone().sub(sideOffset).toArray(),
+    ])
+  }, [position, direction, normal])
+
+  return (
+    <mesh>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={positions}
+          count={positions.length / 3}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <meshBasicMaterial color={color} />
+      {/* <arrowHelper
+        args={[direction, new Vector3(), direction.length(), color]}
+      /> */}
+    </mesh>
+  )
+}
+
 export const GeologyDebug: React.FC = () => {
   const geology = useGeology()
   const [hovering, setHover] = useState(false)
@@ -55,7 +94,7 @@ export const GeologyDebug: React.FC = () => {
   }
 
   return (
-    <group>
+    <group key={geology.id}>
       <mesh
         visible={false}
         onPointerMove={handleDebugHover}
@@ -80,51 +119,39 @@ export const GeologyDebug: React.FC = () => {
         </UI.In>
       )}
 
-      {/* {Array.from(geology.voronoiSphere.voronoiPolygons.values()).map(
-        region => {
-          const position = new LatLong(
-            region.properties.sitecoordinates[1],
-            region.properties.sitecoordinates[0],
-          ).toCartesian(geology.geologyParams.radius * 1.05, new Vector3())
+      {Array.from(geology.regions.values()).map(region => {
+        const positionLatLong = region.getCenterCoordinates()
 
-          const sitePosition = new LatLong(
-            region.properties.sitecoordinates[1],
-            region.properties.sitecoordinates[0],
-          ).toCartesian(geology.geologyParams.radius * 1, new Vector3())
+        const plate = region.plate!
 
-          const color = new Color(
-            MathUtils.seededRandom(region.index) * 0xffffff,
-          )
+        const position = positionLatLong.toCartesian(
+          geology.params.radius * 1.01,
+          new Vector3(),
+        )
 
-          return (
-            <group key={region.index}>
-              <mesh>
-                <Line
-                  points={[position, sitePosition]}
-                  color="white"
-                  transparent
-                  dashSize={5_000}
-                  opacity={0.3}
-                  lineWidth={4}
-                ></Line>
-              </mesh>
-              <Billboard position={position}>
-                <Text
-                  color={color}
-                  anchorX="center"
-                  anchorY="middle"
-                  fontSize={72}
-                  outlineWidth={4}
-                  outlineColor="black"
-                  scale={2_500}
-                >
-                  Region {region.index}
-                </Text>
-              </Billboard>
-            </group>
-          )
-        },
-      )} */}
+        const sitePosition = positionLatLong.toCartesian(
+          geology.params.radius * 1,
+          new Vector3(),
+        )
+
+        const movement = plate.calculateMovement(
+          position,
+          geology.params.radius,
+        )
+
+        const color = new Color(MathUtils.seededRandom(plate.id) * 0xffffff)
+
+        return (
+          <group key={`arrow-${region.id}`}>
+            <Arrow
+              position={position}
+              direction={movement}
+              color={color}
+              normal={sitePosition.clone().normalize()}
+            />
+          </group>
+        )
+      })}
 
       {Array.from(geology.plates.values()).map(plate => {
         const positionLatLong = plate.initialRegion.getCenterCoordinates()
