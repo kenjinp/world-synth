@@ -1,49 +1,85 @@
 import { LatLong } from "@hello-worlds/planets"
 import { Billboard, Line, Text } from "@react-three/drei"
 import { ThreeEvent } from "@react-three/fiber"
-import { latLngToCell } from "h3-js"
 import { useMemo, useState } from "react"
-import { Color, MathUtils, Vector3 } from "three"
+import { Color, DynamicDrawUsage, MathUtils, Vector3 } from "three"
 import { UI } from "../../../../tunnel"
 import { useGeology } from "./Geology.provider"
-import { RESOLUTION } from "./config"
 
 const tempLatLong = new LatLong()
 
-const Arrow: React.FC<{
-  position: Vector3
-  direction: Vector3
-  color: Color
-  normal: Vector3
-}> = ({ position, direction, color, normal }) => {
-  const positions = useMemo(() => {
-    const baseWidth = 50_000
-    const sideOffset = direction
-      .clone()
-      .cross(normal)
-      .setLength(baseWidth / 2)
+const InstancedTectonicMovementIndicator: React.FC = () => {
+  const geology = useGeology()
 
-    return new Float32Array([
-      ...position.clone().add(sideOffset).toArray(),
-      ...position.clone().add(direction).toArray(),
-      ...position.clone().sub(sideOffset).toArray(),
-    ])
-  }, [position, direction, normal])
+  const { positions, colors } = useMemo(() => {
+    const pos: number[] = []
+    const colors: number[] = []
+    Array.from(geology.regions.values()).forEach(region => {
+      const positionLatLong = region.getCenterCoordinates()
+
+      const plate = region.plate!
+
+      const position = positionLatLong.toCartesian(
+        geology.params.radius * 1.01,
+        new Vector3(),
+      )
+
+      const sitePosition = positionLatLong.toCartesian(
+        geology.params.radius * 1,
+        new Vector3(),
+      )
+
+      const movement = plate.calculateMovement(position, geology.params.radius)
+
+      const color = new Color(MathUtils.seededRandom(plate.id) * 0xffffff)
+
+      const direction = movement
+      const normal = sitePosition.clone().normalize()
+
+      const baseWidth = 50_000
+      const sideOffset = direction
+        .clone()
+        .cross(normal)
+        .setLength(baseWidth / 2)
+
+      pos.push(
+        ...[
+          ...position.clone().add(sideOffset).toArray(),
+          ...position.clone().add(direction).toArray(),
+          ...position.clone().sub(sideOffset).toArray(),
+        ],
+      )
+      colors.push(
+        ...[...color.toArray(), ...color.toArray(), ...color.toArray()],
+      )
+    })
+    return {
+      positions: new Float32Array(pos),
+      colors: new Float32Array(colors),
+    }
+  }, [geology.id])
 
   return (
     <mesh>
       <bufferGeometry>
         <bufferAttribute
+          needsUpdate={true}
           attach="attributes-position"
-          array={positions}
           count={positions.length / 3}
+          array={positions}
           itemSize={3}
+          usage={DynamicDrawUsage}
+        />
+        <bufferAttribute
+          needsUpdate={true}
+          attach="attributes-color"
+          count={colors.length / 3}
+          array={colors}
+          itemSize={3}
+          usage={DynamicDrawUsage}
         />
       </bufferGeometry>
-      <meshBasicMaterial color={color} />
-      {/* <arrowHelper
-        args={[direction, new Vector3(), direction.length(), color]}
-      /> */}
+      <meshBasicMaterial vertexColors></meshBasicMaterial>
     </mesh>
   )
 }
@@ -59,7 +95,6 @@ export const GeologyDebug: React.FC = () => {
     const region = geology.getRegionFromVector(point)
     const plate = geology.getPlateFromVector(point)
     const regionDebugDisplay = document.getElementById("debug-region")
-    const h3Index = latLngToCell(latLong.lat, latLong.lon, RESOLUTION)
 
     if (regionDebugDisplay) {
       regionDebugDisplay.style.top = `${e.clientY}px`
@@ -119,39 +154,7 @@ export const GeologyDebug: React.FC = () => {
         </UI.In>
       )}
 
-      {Array.from(geology.regions.values()).map(region => {
-        const positionLatLong = region.getCenterCoordinates()
-
-        const plate = region.plate!
-
-        const position = positionLatLong.toCartesian(
-          geology.params.radius * 1.01,
-          new Vector3(),
-        )
-
-        const sitePosition = positionLatLong.toCartesian(
-          geology.params.radius * 1,
-          new Vector3(),
-        )
-
-        const movement = plate.calculateMovement(
-          position,
-          geology.params.radius,
-        )
-
-        const color = new Color(MathUtils.seededRandom(plate.id) * 0xffffff)
-
-        return (
-          <group key={`arrow-${region.id}`}>
-            <Arrow
-              position={position}
-              direction={movement}
-              color={color}
-              normal={sitePosition.clone().normalize()}
-            />
-          </group>
-        )
-      })}
+      <InstancedTectonicMovementIndicator key={`arrows-${geology.id}`} />
 
       {Array.from(geology.plates.values()).map(plate => {
         const positionLatLong = plate.initialRegion.getCenterCoordinates()

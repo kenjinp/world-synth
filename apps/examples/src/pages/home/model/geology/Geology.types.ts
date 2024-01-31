@@ -23,6 +23,7 @@ export interface GeologyParams {
 }
 
 export interface IGeology {
+  id: string
   plates: IPlate[]
   regions: IRegion[]
   continents: IContinent[]
