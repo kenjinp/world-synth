@@ -62,7 +62,7 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
     }
   }, [seed, geology.id, generated, showPlateBoundaries])
 
-  console.log("data", data, generated, geology)
+  console.log("world", geology.id, { generated, geology })
 
   return generated && geology.generated ? (
     <group>

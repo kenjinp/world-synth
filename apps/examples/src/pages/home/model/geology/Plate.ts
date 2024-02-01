@@ -169,4 +169,30 @@ export class Plate implements IPlate {
     )
     return movement
   }
+
+  static copy(plate: IPlate) {
+    const initialRegion = Region.copy(plate.initialRegion)
+    const newPlate = new Plate(plate.id, initialRegion)
+    newPlate.driftAxis = new Vector3().copy(plate.driftAxis)
+    newPlate.driftRate = plate.driftRate
+    newPlate.spinRate = plate.spinRate
+    newPlate.plateType = plate.plateType
+    newPlate.plateGrowthBiasBearing = plate.plateGrowthBiasBearing
+    newPlate.shape = new SphericalPolygon().copy(plate.shape)
+    newPlate.continetalShape = new SphericalPolygon().copy(
+      plate.continetalShape,
+    )
+
+    newPlate.borderRegions = new Set<IRegion>(plate.borderRegions)
+    newPlate.neighboringPlates = new Set<IPlate>(plate.neighboringPlates)
+    newPlate.neighboringRegions = new Set<IRegion>(plate.neighboringRegions)
+    newPlate.boundaryVertices = new Set<LatLong>(plate.boundaryVertices)
+
+    plate._regions.forEach(r => {
+      const region = Region.copy(r)
+      newPlate.addRegion(region)
+    })
+
+    return newPlate
+  }
 }

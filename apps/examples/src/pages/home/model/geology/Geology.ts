@@ -14,11 +14,13 @@ import {
   IPlate,
   IRegion,
 } from "./Geology.types"
+import { Plate } from "./Plate"
 import { Region } from "./Region"
 
 const defaultGeologyParams: Partial<GeologyParams> = {
   percentOcean: 0.71,
   numberOfInitialPlates: 10,
+  numHotspots: 36,
   radius: EARTH_RADIUS,
 }
 
@@ -93,7 +95,6 @@ export class Geology implements IGeology {
       ...defaultGeologyParams,
       ...geologyParams,
     } as GeologyParams
-    setRandomSeed(this.params.seed || MathUtils.generateUUID())
     this.id = MathUtils.generateUUID()
   }
 
@@ -106,6 +107,7 @@ export class Geology implements IGeology {
     // should prune and devide plates that only have one connection to their host plate
     // form oceanic plates with remaining spaces
     // subdivide plates that are too big
+    setRandomSeed(this.params.seed || MathUtils.generateUUID())
 
     generate(this, (event, data) => {
       this.#callEvent(GeologyEventType.Generate, {
@@ -267,10 +269,13 @@ export class Geology implements IGeology {
       _continents: continents,
       _oceans: oceans,
     } = geology as Geology
-    this._plates = new Map(Array.from(plates.values()).map(p => [p.id, p]))
     this._regions = new Map(
-      Array.from(regions.values()).map(r => [r.id.toString(), r]),
+      Array.from(regions.values()).map(r => [r.id.toString(), Region.copy(r)]),
     )
+    this._plates = new Map(
+      Array.from(plates.values()).map(p => [p.id, Plate.copy(p)]),
+    )
+
     this._continents = new Map(
       Array.from(continents.values()).map(c => [c.id.toString(), c]),
     )

@@ -147,10 +147,8 @@ function* createOceanicPlates(geology: IGeology) {
 function* createTectonicBoundaries(geology: IGeology) {
   for (const plate of geology.plates) {
     const percentDone = plate.id / geology.plates.length
-    console.time("mergeRegionsIntoPolygon")
     // @ts-ignore
     plate.getBorderingRegions()
-    console.timeEnd("mergeRegionsIntoPolygon")
     yield percentDone
   }
 }

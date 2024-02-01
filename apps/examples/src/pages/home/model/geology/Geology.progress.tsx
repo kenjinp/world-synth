@@ -1,22 +1,21 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ProgressBar } from "react-step-progress-bar"
 import "react-step-progress-bar/styles.css"
 import { ProgressUI } from "../../../../tunnel"
+import { geologyEvents } from "./Geology.events"
 import { useGeology } from "./Geology.provider"
 import { GeologyEventCallback, GeologyEventType } from "./Geology.types"
 
 export const GeologyProgress: React.FC = () => {
   const { geology, generated } = useGeology()
+  const [progress, setProgress] = useState(0)
   const messageRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
-    // const ui = document.getElementById("ui")
-    // const gstats = document.createElement("div")
-    // ui?.appendChild(gstats)
     const messageHolder = messageRef.current
-    const cb: GeologyEventCallback = ({ geology, data }) => {
-      const { eventType, percentDone } = data
-      console.log(data)
+    const cb: GeologyEventCallback = data => {
+      const { eventType, percentDone } = data.data
+      setProgress(percentDone || 0)
       let message = ""
       if (eventType === GeologyEventType.Generate) {
         message = "Generating Geology..."
@@ -36,24 +35,15 @@ export const GeologyProgress: React.FC = () => {
       if (messageHolder) {
         messageHolder.innerHTML = message
       }
-      // if (gstats) {
-      //   gstats.innerHTML = `
-      //   <p>Plates: ${geology.plates.length}</p>
-      //   <p>Continents: ${geology.continents.length}</p>
-      //   <p>Oceans: ${geology.oceans.length}</p>
-      //   `
-      // }
     }
-    geology.addEventListener(GeologyEventType.Generate, cb)
+    geologyEvents.subscribe(cb)
 
     return () => {
-      geology.removeEventListener(GeologyEventType.Generate, cb)
-      // gstats.innerHTML = ""
-      // ui?.removeChild(gstats)
+      geologyEvents.unsubscribe(cb)
     }
   }, [geology])
 
-  return generated ? (
+  return !generated ? (
     <ProgressUI.In>
       <div
         style={{
@@ -69,7 +59,7 @@ export const GeologyProgress: React.FC = () => {
         <h2 ref={messageRef}></h2>
         <div style={{ width: "45vw" }}>
           <ProgressBar
-            percent={progress}
+            percent={progress * 100}
             filledBackground="linear-gradient(to right, #175515, #3F91C7)"
           />
         </div>

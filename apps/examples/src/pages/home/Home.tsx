@@ -1,25 +1,13 @@
-import { setRandomSeed } from "@hello-worlds/core"
+import { EARTH_RADIUS } from "@hello-worlds/planets"
 import { useControls } from "leva"
-import { useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import World from "./World"
-import { Geology } from "./model/geology/Geology"
 import { GeologyDebug } from "./model/geology/Geology.debug"
-import { GeologyProvider, useGeology } from "./model/geology/Geology.provider"
-
-const GenerateGeology: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const { geology, generated } = useGeology()
-  useEffect(() => {
-    if (generated) {
-      return
-    }
-    console.time("Generate Geology")
-    geology.generate()
-    console.timeEnd("Generate Geology")
-  }, [geology, generated])
-  return children
-}
+import { GeologyProgress } from "./model/geology/Geology.progress"
+import { GeologyProvider } from "./model/geology/Geology.provider"
 
 export default () => {
+  const radius = EARTH_RADIUS
   const { resolution, numberOfHotspots, numberOfPlates, seed, percentOcean } =
     useControls({
       numberOfHotspots: {
@@ -50,26 +38,22 @@ export default () => {
       useShadows: false,
     })
 
-  const geology = useMemo(() => {
-    setRandomSeed(seed)
-    const geology = new Geology({
+  const params = useMemo(() => {
+    return {
       seed,
       numberOfInitialPlates: numberOfPlates,
       percentOcean,
       numHotspots: numberOfHotspots,
-    })
-
-    return geology
-  }, [numberOfPlates, seed, percentOcean, numberOfHotspots])
+      radius,
+    }
+  }, [numberOfPlates, seed, percentOcean, numberOfHotspots, radius])
 
   return (
-    <group>
-      <GeologyProvider geology={geology}>
-        <World seed={seed}>
-          <GeologyDebug />
-        </World>
-        <GenerateGeology />
-      </GeologyProvider>
-    </group>
+    <GeologyProvider {...params}>
+      <World seed={seed}>
+        <GeologyDebug />
+      </World>
+      <GeologyProgress />
+    </GeologyProvider>
   )
 }

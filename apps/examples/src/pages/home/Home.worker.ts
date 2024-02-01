@@ -24,9 +24,6 @@ const heightGenerator: ChunkGenerator3Initializer<ThreadParams, number> = ({
 }) => {
   const newGeology = new Geology().copy(geology)
   globalGeology = newGeology
-
-  console.log({ globalGeology })
-
   return ({ input }) => {
     return newGeology.getElevationAtVector(input)
   }

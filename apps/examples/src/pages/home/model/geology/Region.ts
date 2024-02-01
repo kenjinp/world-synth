@@ -105,4 +105,11 @@ export class Region implements IRegion {
     }
     return region
   }
+
+  static copy(region: IRegion) {
+    const r = Region.getRegion(region.id)
+    r.type = region.type
+    r.plate = region.plate
+    return r
+  }
 }
