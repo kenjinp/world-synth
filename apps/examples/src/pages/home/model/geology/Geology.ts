@@ -1,7 +1,7 @@
 import { setRandomSeed } from "@hello-worlds/core"
 import { EARTH_RADIUS, LatLong, Noise } from "@hello-worlds/planets"
+import { Event } from "eventery"
 import { MathUtils, Vector3 } from "three"
-import { lerp } from "three/src/math/MathUtils"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
 import { generate } from "./Geology.generate"
 import {
@@ -13,7 +13,6 @@ import {
   IOcean,
   IPlate,
   IRegion,
-  PlateType,
 } from "./Geology.types"
 import { Region } from "./Region"
 
@@ -71,12 +70,24 @@ function easeOutQuad(x: number): number {
 export class Geology implements IGeology {
   generated: boolean = false
   params: GeologyParams
+  id: string
   private _plates: Map<number, IPlate> = new Map()
   private _regions: Map<string, IRegion> = new Map()
   private _continents: Map<string, IContinent> = new Map()
   private _oceans: Map<string, IOcean> = new Map()
-  private _events: Map<GeologyEventType, Set<GeologyEventCallback>> = new Map()
+  private _events: Map<
+    GeologyEventType,
+    Event<
+      [
+        {
+          geology: IGeology
+          data: { eventType: GeologyEventType; percentDone?: number }
+        },
+      ]
+    >
+  > = new Map()
   continentShapes: SphericalPolygon = new SphericalPolygon()
+  hotspots: any[] = []
   constructor(geologyParams: Partial<GeologyParams> = {}) {
     this.params = {
       ...defaultGeologyParams,
@@ -107,6 +118,10 @@ export class Geology implements IGeology {
       })
     })
     this.generated = true
+    this.#callEvent(GeologyEventType.Generate, {
+      eventType: GeologyEventType.Generate,
+      percentDone: 1.0,
+    })
   }
 
   addPlate(plate: IPlate) {
@@ -118,14 +133,15 @@ export class Geology implements IGeology {
   }
 
   #callEvent(
-    event: GeologyEventType,
-    data: { eventType: GeologyEventType; percentDone: number },
+    eventType: GeologyEventType,
+    data: { eventType: GeologyEventType; percentDone?: number },
   ) {
-    const callbacks = this._events.get(event)
-    if (callbacks) {
-      for (const callback of callbacks) {
-        callback(this, data)
-      }
+    const events = this._events.get(eventType)
+    if (events) {
+      events.emit({
+        geology: this,
+        data,
+      })
     }
   }
 
@@ -189,18 +205,15 @@ export class Geology implements IGeology {
     // }
 
     if (region && plate) {
-      if (region.type === PlateType.Continental && plate.continetalShape) {
-        const distanceToCoast = SphericalPolygon.distanceToPolygonEdgeVector3(
-          position,
-          plate.continetalShape,
-        )
-        if (Number.isFinite(distanceToCoast)) {
-          const normalizedDistance = distanceToCoast / this.params.radius
-          const x = easeOutQuad(normalizedDistance)
-          h = baseHeight + lerp(0, 1000000, x)
-        }
-      }
-
+      // const distanceToCoast = SphericalPolygon.distanceToPolygonEdgeVector3(
+      //   position,
+      //   plate.shape,
+      // )
+      // if (Number.isFinite(distanceToCoast)) {
+      //   const normalizedDistance = distanceToCoast / this.params.radius
+      //   const x = easeOutQuad(normalizedDistance)
+      //   h = baseHeight + lerp(0, 1000000, x)
+      // }
       //   const distanceToCoast = calcDistance(
       //     currentLatLong,
       //     geology.continentalPolygon,
@@ -218,16 +231,32 @@ export class Geology implements IGeology {
     return h
   }
 
-  addEventListener(event: GeologyEventType, callback: GeologyEventCallback) {
-    const callbacks = this._events.get(event) || new Set()
-    callbacks.add(callback)
-    this._events.set(event, callbacks)
+  addEventListener(
+    eventType: GeologyEventType,
+    callback: GeologyEventCallback,
+  ) {
+    const event =
+      this._events.get(eventType) ||
+      (() =>
+        new Event<
+          [
+            {
+              geology: IGeology
+              data: { eventType: GeologyEventType; percentDone?: number }
+            },
+          ]
+        >())()
+    event.subscribe(callback)
+    this._events.set(eventType, event)
   }
 
-  removeEventListener(event: GeologyEventType, callback: GeologyEventCallback) {
-    const callbacks = this._events.get(event)
-    if (callbacks) {
-      callbacks.delete(callback)
+  removeEventListener(
+    eventType: GeologyEventType,
+    callback: GeologyEventCallback,
+  ) {
+    const event = this._events.get(eventType)
+    if (event) {
+      event.unsubscribe(callback)
     }
   }
 
@@ -248,6 +277,7 @@ export class Geology implements IGeology {
     this._oceans = new Map(
       Array.from(oceans.values()).map(o => [o.id.toString(), o]),
     )
+    this.hotspots = geology.hotspots
     this.generated = geology.generated
     this.continentShapes = new SphericalPolygon().copy(geology.continentShapes)
     return this

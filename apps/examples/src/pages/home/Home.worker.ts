@@ -13,6 +13,7 @@ import { PlateType } from "./model/geology/Geology.types"
 export type ThreadParams = {
   seed: string
   geology: Geology
+  showPlateBoundaries: boolean
 }
 
 let globalGeology: Geology
@@ -45,7 +46,7 @@ function hashStringToInt(input: string): number {
 const colorGenerator: ChunkGenerator3Initializer<
   ThreadParams,
   Color | ColorArrayWithAlpha
-> = ({ radius, data: { geology, seed } }) => {
+> = ({ radius, data: { geology, seed, showPlateBoundaries } }) => {
   const color = new Color(0xffffff * Math.random())
   const plateColor = new Color()
   const regionColor = new Color()
@@ -79,7 +80,7 @@ const colorGenerator: ChunkGenerator3Initializer<
       if (region.type === PlateType.Oceanic) {
         plateColor.lerp(lerpColor.set(0x2d75b0), 0.9)
       }
-      if (plate.borderRegions.has(region)) {
+      if (showPlateBoundaries && plate.borderRegions.has(region)) {
         plateColor.lerp(lerpColor.set("red"), 0.6)
       }
       return plateColor

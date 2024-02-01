@@ -1,6 +1,7 @@
 import { LatLong } from "@hello-worlds/planets"
 import { Vector3 } from "three"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
+import { Hotspot } from "./hotspots/Hotspot"
 
 export enum GeologyEventType {
   Generate = "Generate",
@@ -8,18 +9,20 @@ export enum GeologyEventType {
   CreateContinents = "CreateContinents",
   CreateOceans = "CreateOceans",
   CreateOceanicPlates = "CreateOceanicPlates",
+  CreateHotspots = "CreateHotspots",
 }
 
-export type GeologyEventCallback = (
-  geology: IGeology,
-  data: { eventType: GeologyEventType; percentDone?: number },
-) => void
+export type GeologyEventCallback = (payload: {
+  geology: IGeology
+  data: { eventType: GeologyEventType; percentDone?: number }
+}) => void
 
 export interface GeologyParams {
   percentOcean: number
   numberOfInitialPlates: number
   radius: number
   seed?: string
+  numHotspots: number
 }
 
 export interface IGeology {
@@ -31,11 +34,13 @@ export interface IGeology {
   generated: boolean
   params: GeologyParams
   continentShapes: SphericalPolygon
+  hotspots: Hotspot[]
   addPlate: (plate: IPlate) => void
   addRegion: (region: IRegion) => void
   getPlateFromVector: (position: Vector3) => IPlate | undefined
   getRegionFromVector: (position: Vector3) => IRegion | undefined
   generate: VoidFunction
+  getPlateFromLatLong: (latLong: LatLong) => IPlate | undefined
   // getNormalizedElevationAtCoordinate: (latLon: LatLong) => number
   // getElevationAtCoordinate: (latLon: LatLong) => number
   getElevationAtVector: (position: Vector3) => number
@@ -43,11 +48,11 @@ export interface IGeology {
   clone: () => IGeology
   addEventListener: (
     event: GeologyEventType,
-    callback: (geology: IGeology) => void,
+    callback: GeologyEventCallback,
   ) => void
   removeEventListener: (
     event: GeologyEventType,
-    callback: (geology: IGeology) => void,
+    callback: GeologyEventCallback,
   ) => void
 }
 
@@ -66,6 +71,7 @@ export interface IRegion {
   assignPlate: (plate: IPlate) => void
   getCenterCoordinates: () => LatLong
   getNeighbors: () => IRegion[]
+  getSharedVertices(region: IRegion): LatLong[]
 }
 
 export interface IPlate {
@@ -79,6 +85,8 @@ export interface IPlate {
   plateType: PlateType
   initialRegion: IRegion
   plateGrowthBiasBearing: number
+  neighboringPlates: Set<IPlate>
+  boundaryVertices: Set<LatLong>
   addRegion: (region: IRegion) => void
   getArea: () => number
   getNeighboringRegions: () => IRegion[]

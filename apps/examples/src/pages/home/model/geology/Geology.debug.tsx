@@ -1,6 +1,7 @@
-import { LatLong } from "@hello-worlds/planets"
+import { LatLong, remap } from "@hello-worlds/planets"
 import { Billboard, Line, Text } from "@react-three/drei"
 import { ThreeEvent } from "@react-three/fiber"
+import { useControls } from "leva"
 import { useMemo, useState } from "react"
 import { Color, DynamicDrawUsage, MathUtils, Vector3 } from "three"
 import { UI } from "../../../../tunnel"
@@ -9,7 +10,7 @@ import { useGeology } from "./Geology.provider"
 const tempLatLong = new LatLong()
 
 const InstancedTectonicMovementIndicator: React.FC = () => {
-  const geology = useGeology()
+  const { geology, generated } = useGeology()
 
   const { positions, colors } = useMemo(() => {
     const pos: number[] = []
@@ -33,11 +34,10 @@ const InstancedTectonicMovementIndicator: React.FC = () => {
 
       const color = new Color(MathUtils.seededRandom(plate.id) * 0xffffff)
 
-      const direction = movement
       const normal = sitePosition.clone().normalize()
 
       const baseWidth = 50_000
-      const sideOffset = direction
+      const sideOffset = movement
         .clone()
         .cross(normal)
         .setLength(baseWidth / 2)
@@ -45,7 +45,7 @@ const InstancedTectonicMovementIndicator: React.FC = () => {
       pos.push(
         ...[
           ...position.clone().add(sideOffset).toArray(),
-          ...position.clone().add(direction).toArray(),
+          ...position.clone().add(movement).toArray(),
           ...position.clone().sub(sideOffset).toArray(),
         ],
       )
@@ -57,7 +57,7 @@ const InstancedTectonicMovementIndicator: React.FC = () => {
       positions: new Float32Array(pos),
       colors: new Float32Array(colors),
     }
-  }, [geology.id])
+  }, [geology, generated])
 
   return (
     <mesh>
@@ -84,9 +84,109 @@ const InstancedTectonicMovementIndicator: React.FC = () => {
   )
 }
 
+const Hotspots: React.FC = () => {
+  const { geology, generated } = useGeology()
+
+  const hotspots = useMemo(() => {
+    return geology.hotspots.map((h, index) => {
+      const position = h.coordinates.toCartesian(
+        geology.params.radius,
+        new Vector3(),
+      )
+      const sitePosition = h.coordinates.toCartesian(
+        geology.params.radius * 1.1,
+        new Vector3(),
+      )
+      const size = remap(h.magnitude, 0, 1, 5_000, 300_000)
+      const name = `hotspot-${index}`
+      const color = h.color
+      return (
+        <group key={`hotspot-:${index}`}>
+          {h.children.map((child, i) => {
+            const position = child.coordinates.toCartesian(
+              geology.params.radius,
+              new Vector3(),
+            )
+            const sitePosition = child.coordinates.toCartesian(
+              geology.params.radius * 1.04,
+              new Vector3(),
+            )
+            const size = remap(child.magnitude, 0, 1, 5_000, 300_000)
+            const name = `hotspot-:${index}:${i}`
+            return (
+              <group key={name}>
+                <mesh>
+                  <Line
+                    points={[position, sitePosition]}
+                    color="white"
+                    transparent
+                    dashSize={5_000}
+                    opacity={0.3}
+                    lineWidth={4}
+                  ></Line>
+                </mesh>
+                <Billboard position={sitePosition}>
+                  <Text
+                    color={color}
+                    anchorX="center"
+                    anchorY="middle"
+                    fontSize={72}
+                    outlineWidth={4}
+                    outlineColor="black"
+                    scale={1_000}
+                  >
+                    {name}
+                  </Text>
+                </Billboard>
+                <mesh position={position}>
+                  <sphereGeometry args={[size, 16, 16]} />
+                  <meshStandardMaterial color={color} />
+                </mesh>
+              </group>
+            )
+          })}
+          <mesh>
+            <Line
+              points={[position, sitePosition]}
+              color="white"
+              transparent
+              dashSize={5_000}
+              opacity={0.3}
+              lineWidth={4}
+            ></Line>
+          </mesh>
+          <Billboard position={sitePosition}>
+            <Text
+              color={color}
+              anchorX="center"
+              anchorY="middle"
+              fontSize={72}
+              outlineWidth={4}
+              outlineColor="black"
+              scale={2_000}
+            >
+              {name}
+            </Text>
+          </Billboard>
+          <mesh position={position}>
+            <sphereGeometry args={[size, 32, 32]} />
+            <meshStandardMaterial color={color} />
+          </mesh>
+        </group>
+      )
+    })
+  }, [geology.id])
+
+  return hotspots
+}
+
 export const GeologyDebug: React.FC = () => {
-  const geology = useGeology()
+  const { geology } = useGeology()
   const [hovering, setHover] = useState(false)
+  const { showHotspots, showTectonicMovement } = useControls({
+    showHotspots: false,
+    showTectonicMovement: false,
+  })
 
   const handleDebugHover = (e: ThreeEvent<PointerEvent>) => {
     const point = e.point
@@ -95,6 +195,9 @@ export const GeologyDebug: React.FC = () => {
     const region = geology.getRegionFromVector(point)
     const plate = geology.getPlateFromVector(point)
     const regionDebugDisplay = document.getElementById("debug-region")
+    const neighborPlates = Array.from(plate?.neighboringPlates || [])
+      .map(neighborPlate => neighborPlate.id)
+      .join(", ")
 
     if (regionDebugDisplay) {
       regionDebugDisplay.style.top = `${e.clientY}px`
@@ -108,6 +211,9 @@ export const GeologyDebug: React.FC = () => {
           </p>
           <p>
             Plate: ${region.plate?.id} ${plate?.plateType.toLocaleLowerCase()}
+          </p>
+          <p>
+            Plate Neighbors: ${neighborPlates}
           </p>
           <p>
           <p>
@@ -154,7 +260,26 @@ export const GeologyDebug: React.FC = () => {
         </UI.In>
       )}
 
-      <InstancedTectonicMovementIndicator key={`arrows-${geology.id}`} />
+      {showTectonicMovement && (
+        <InstancedTectonicMovementIndicator key={`arrows-${geology.id}`} />
+      )}
+
+      {/* {Array.from(geology.plates).map(plate => {
+        return Array.from(plate.boundaryVertices).map((vertex, index) => {
+          const position = vertex.toCartesian(
+            geology.params.radius,
+            new Vector3(),
+          )
+          return (
+            <mesh position={position}>
+              <sphereGeometry args={[100_000, 32, 32]} />
+              <meshStandardMaterial color="salmon" />
+            </mesh>
+          )
+        })
+      })} */}
+
+      {showHotspots && <Hotspots />}
 
       {Array.from(geology.plates.values()).map(plate => {
         const positionLatLong = plate.initialRegion.getCenterCoordinates()

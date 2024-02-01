@@ -1,11 +1,12 @@
 import { randomRange } from "@hello-worlds/core"
 import { LatLong } from "@hello-worlds/planets"
 import { Vector3 } from "three"
+import { MapSet } from "../../../../lib/map-set/MapSet"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
 import { IPlate, IRegion, PlateType } from "./Geology.types"
 import { Region } from "./Region"
 
-function randomUnitVector() {
+export function randomUnitVector() {
   var theta = randomRange(0, Math.PI * 2)
   var phi = Math.acos(randomRange(-1, 1))
   var sinPhi = Math.sin(phi)
@@ -32,6 +33,8 @@ export class Plate implements IPlate {
   borderRegions = new Set<IRegion>()
   neighboringPlates = new Set<IPlate>()
   neighboringRegions = new Set<IRegion>()
+  boundaryVertices = new Set<LatLong>()
+  neighboringBoundaryRegions = new MapSet<IPlate, IRegion>()
   constructor(public readonly id: number, initialRegion: IRegion) {
     this.initialRegion = initialRegion
     this.driftRate = randomRange(-Math.PI / 30, Math.PI / 30)
@@ -108,13 +111,25 @@ export class Plate implements IPlate {
     for (const r of this._regions.values()) {
       const neighbors = r.getNeighbors()
       for (const neighbor of neighbors) {
-        if (neighbor.plate !== this) {
+        if (neighbor.plate && neighbor.plate !== this) {
+          // this plate is different than us
           borderingRegions.add(r)
-          continue
+          this.neighboringPlates.add(neighbor.plate)
+          this.neighboringBoundaryRegions.add(neighbor.plate, neighbor)
+          // get veritces of the neighbor
+          // compare with vertices of this region
+          // add to list of vertices that are shared
+          // const blah = r.getSharedVertices(neighbor)
+          // for (const vertex of blah) {
+          //   this.boundaryVertices.add(vertex)
+          // }
         }
       }
     }
     this.borderRegions = borderingRegions
+    // const blah = Array.from(this.boundaryVertices)
+
+    // this.shape.setFromVertices([...blah, blah[0]])
     return Array.from(borderingRegions)
   }
 
@@ -122,12 +137,19 @@ export class Plate implements IPlate {
     return Array.from(this.#neighbors.values()).map(id => Region.getRegion(id))
   }
 
-  calculateMovement(position: Vector3, radius: number) {
+  getMovementFromPosition(position: Vector3, radius: number) {}
+
+  calculateMovement(
+    position: Vector3,
+    radius: number,
+    drifRateModifier: number = 1,
+  ) {
     const movement = this.driftAxis
       .clone()
       .cross(position)
       .setLength(
         this.driftRate *
+          drifRateModifier *
           position.clone().projectOnVector(this.driftAxis).distanceTo(position),
       )
     const intialLatLong = this.initialRegion.getCenterCoordinates()

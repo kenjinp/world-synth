@@ -3,6 +3,7 @@ import { floodfillPlates } from "./Geology.floodfill"
 import { GeologyEventType, IGeology, PlateType } from "./Geology.types"
 import { Plate } from "./Plate"
 import { Region } from "./Region"
+import { Hotspot } from "./hotspots/Hotspot"
 
 export function generate(
   geology: IGeology,
@@ -13,6 +14,7 @@ export function generate(
   const createOceanicCrustIterator = createOceanicCrust(geology)
   const createOceanicPlatesIterator = createOceanicPlates(geology)
   const createTectonicBoundariesIterator = createTectonicBoundaries(geology)
+  const createHotspotsIterator = createHotspots(geology)
 
   function doIterator(
     iterator: Generator<any, any, any>,
@@ -33,6 +35,7 @@ export function generate(
     createTectonicBoundariesIterator,
     GeologyEventType.CreateOceanicPlates,
   )
+  doIterator(createHotspotsIterator, GeologyEventType.CreateHotspots)
 }
 
 function* createPlates(geology: IGeology) {
@@ -148,6 +151,17 @@ function* createTectonicBoundaries(geology: IGeology) {
     // @ts-ignore
     plate.getBorderingRegions()
     console.timeEnd("mergeRegionsIntoPolygon")
+    yield percentDone
+  }
+}
+
+function* createHotspots(geology: IGeology) {
+  for (let i = 0; i < geology.params.numHotspots; i++) {
+    const percentDone = i + 1 / geology.params.numHotspots
+    const hotspot = Hotspot.random(geology)
+    // hotspot.calculateChainEffect()
+    geology.hotspots.push(hotspot)
+
     yield percentDone
   }
 }

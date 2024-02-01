@@ -1,5 +1,11 @@
 import { LatLong } from "@hello-worlds/planets"
-import { getCoords, lineString, point, pointToLineDistance } from "@turf/turf"
+import {
+  getCoords,
+  lineString,
+  point,
+  pointToLineDistance,
+  polygon,
+} from "@turf/turf"
 import { CoordPair, cellToBoundary, cellsToMultiPolygon, gridDisk } from "h3-js"
 import { union } from "polyclip-ts"
 import { Vector3 } from "three"
@@ -67,6 +73,10 @@ export class SphericalPolygon {
     return minDistance
   }
 
+  getLineString() {
+    return lineString(this.shape[0][0])
+  }
+
   distanceToEdgeVector3(p: Vector3) {
     return SphericalPolygon.distanceToPolygonEdgeVector3(p, this)
   }
@@ -83,6 +93,13 @@ export class SphericalPolygon {
 
   clone() {
     return new SphericalPolygon(this.shape)
+  }
+
+  setFromVertices(vertices: LatLong[]) {
+    const p = vertices.map(v => [v.lon, v.lat])
+    console.log(p)
+    this.shape = polygon([p])
+    return this
   }
 
   static fromH3Cell(cell: string) {

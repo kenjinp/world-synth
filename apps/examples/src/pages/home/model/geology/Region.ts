@@ -4,10 +4,12 @@ import {
   UNITS,
   cellArea,
   cellToLatLng,
+  cellToVertexes,
   getNumCells,
   gridDisk,
   isValidCell,
   latLngToCell,
+  vertexToLatLng,
 } from "h3-js"
 import { Vector3 } from "three"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
@@ -30,6 +32,28 @@ export class Region implements IRegion {
 
   assignPlate(plate: IPlate) {
     this.plate = plate
+  }
+
+  getVertices() {
+    const vertexIds = cellToVertexes(this.id)
+    const vertices = []
+    for (const vertexId of vertexIds) {
+      const [lat, long] = vertexToLatLng(vertexId)
+      vertices.push(new LatLong(lat, long))
+    }
+    return vertices
+  }
+
+  getSharedVertices(region: IRegion) {
+    const vertexIdsA = cellToVertexes(this.id)
+    const vertexIdsB = cellToVertexes(region.id)
+    const sharedVertexIds = vertexIdsA.filter(id => vertexIdsB.includes(id))
+    const sharedVertices = []
+    for (const vertexId of sharedVertexIds) {
+      const [lat, long] = vertexToLatLng(vertexId)
+      sharedVertices.push(new LatLong(lat, long))
+    }
+    return sharedVertices
   }
 
   getArea() {

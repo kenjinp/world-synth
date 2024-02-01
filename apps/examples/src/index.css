@@ -88,7 +88,8 @@ header {
   z-index: 999;
 }
 
-#ui {
+#ui,
+#progress {
   position: fixed;
   top: 0;
   left: 0;

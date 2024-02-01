@@ -7,7 +7,7 @@ import { Canvas } from "./components/Canvas"
 import { ExampleWrapper } from "./components/ExampleWrapper"
 import { Footer } from "./components/footer/Footer"
 import Home from "./pages/home/Home"
-import { UI } from "./tunnel"
+import { ProgressUI, UI } from "./tunnel"
 
 interface IRoute {
   name: string
@@ -38,6 +38,9 @@ const App: React.FC = () => {
                 <div id="ui">
                   {/* Anything that goes into the tunnel, we want to render here. */}
                   <UI.Out />
+                </div>
+                <div id="progress">
+                  <ProgressUI.Out />
                 </div>
 
                 <Canvas>
