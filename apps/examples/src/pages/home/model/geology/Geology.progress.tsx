@@ -9,35 +9,32 @@ import { GeologyEventCallback, GeologyEventType } from "./Geology.types"
 export const GeologyProgress: React.FC = () => {
   const { geology, generated } = useGeology()
   const [progress, setProgress] = useState(0)
+  const [message, setMessage] = useState("Generating Planet...")
   const messageRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
-    const messageHolder = messageRef.current
     const cb: GeologyEventCallback = data => {
       const { eventType, percentDone } = data.data
       setProgress(percentDone || 0)
-      let message = ""
+      let message = "Generating Planet..."
       if (eventType === GeologyEventType.Generate) {
         message = "Generating Geology..."
       }
       if (eventType === GeologyEventType.CreatePlates) {
-        message = "Generating Plates"
+        message = "Generating Plates..."
       }
       if (eventType === GeologyEventType.CreateContinents) {
-        message = "Generating Continents"
+        message = "Generating Continents..."
       }
       if (eventType === GeologyEventType.CreateOceans) {
-        message = "Generating Hybrid Ocean Crust"
+        message = "Generating Hybrid Ocean Crust..."
       }
       if (eventType === GeologyEventType.CreateOceanicPlates) {
-        message = "Generating Oceanic Plates"
+        message = "Generating Oceanic Plates..."
       }
-      if (messageHolder) {
-        messageHolder.innerHTML = message
-      }
+      setMessage(message)
     }
     geologyEvents.subscribe(cb)
-
     return () => {
       geologyEvents.unsubscribe(cb)
     }
@@ -56,7 +53,7 @@ export const GeologyProgress: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        <h2 ref={messageRef}></h2>
+        <h2>{message}</h2>
         <div style={{ width: "45vw" }}>
           <ProgressBar
             percent={progress * 100}
