@@ -5,6 +5,7 @@ import { MapSet } from "../../../../lib/map-set/MapSet"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
 import { IPlate, IRegion, PlateType } from "./Geology.types"
 import { Region } from "./Region"
+import { REGION_AREA } from "./config"
 
 export function randomUnitVector() {
   var theta = randomRange(0, Math.PI * 2)
@@ -30,16 +31,18 @@ export class Plate implements IPlate {
   shape: SphericalPolygon = new SphericalPolygon()
   continetalShape: SphericalPolygon = new SphericalPolygon()
   #neighbors = new Set<string>()
-  borderRegions = new Set<IRegion>()
+  borderRegionsIds = new Set<string>()
   neighboringPlates = new Set<IPlate>()
   neighboringRegions = new Set<IRegion>()
   boundaryVertices = new Set<LatLong>()
   neighboringBoundaryRegions = new MapSet<IPlate, IRegion>()
+  growthBias: number
   constructor(public readonly id: number, initialRegion: IRegion) {
     this.initialRegion = initialRegion
     this.driftRate = randomRange(-Math.PI / 30, Math.PI / 30)
     this.spinRate = randomRange(-Math.PI / 30, Math.PI / 30)
     this.driftAxis = randomUnitVector()
+    this.growthBias = randomRange(0.8, 1.2)
     this.addRegion(initialRegion)
     this.plateGrowthBiasBearing = randomRange(0, 360)
   }
@@ -81,39 +84,35 @@ export class Plate implements IPlate {
   }
 
   getArea() {
-    let area = 0
-    for (const region of this.regions) {
-      area += region.getArea()
-    }
-    return area
+    return this._regions.size * REGION_AREA
   }
 
-  getContinentalBorderingRegions() {
-    const borderingRegions = new Set<IRegion>()
-    for (const r of this._regions.values()) {
-      const neighbors = r.getNeighbors()
-      for (const neighbor of neighbors) {
-        if (
-          r.type === PlateType.Continental &&
-          neighbor.type === PlateType.Oceanic
-        ) {
-          borderingRegions.add(r)
-          continue
-        }
-      }
-    }
-    this.borderRegions = borderingRegions
-    return Array.from(borderingRegions)
-  }
+  // getContinentalBorderingRegions() {
+  //   const borderingRegions = new Set<IRegion>()
+  //   for (const r of this._regions.values()) {
+  //     const neighbors = r.getNeighbors()
+  //     for (const neighbor of neighbors) {
+  //       if (
+  //         r.type === PlateType.Continental &&
+  //         neighbor.type === PlateType.Oceanic
+  //       ) {
+  //         borderingRegions.add(r.id)
+  //         continue
+  //       }
+  //     }
+  //   }
+  //   this.borderRegions = borderingRegions
+  //   return Array.from(borderingRegions)
+  // }
 
   getBorderingRegions() {
-    const borderingRegions = new Set<IRegion>()
+    const borderRegionsIds = new Set<string>()
     for (const r of this._regions.values()) {
       const neighbors = r.getNeighbors()
       for (const neighbor of neighbors) {
         if (neighbor.plate && neighbor.plate !== this) {
           // this plate is different than us
-          borderingRegions.add(r)
+          borderRegionsIds.add(r.id)
           this.neighboringPlates.add(neighbor.plate)
           this.neighboringBoundaryRegions.add(neighbor.plate, neighbor)
           // get veritces of the neighbor
@@ -126,18 +125,20 @@ export class Plate implements IPlate {
         }
       }
     }
-    this.borderRegions = borderingRegions
+    this.borderRegionsIds = borderRegionsIds
     // const blah = Array.from(this.boundaryVertices)
 
     // this.shape.setFromVertices([...blah, blah[0]])
-    return Array.from(borderingRegions)
+    return Array.from(borderRegionsIds)
   }
 
   getNeighboringRegions() {
     return Array.from(this.#neighbors.values()).map(id => Region.getRegion(id))
   }
 
-  getMovementFromPosition(position: Vector3, radius: number) {}
+  getMovementFromPosition(position: Vector3, radius: number) {
+    throw new Error("Method not implemented.")
+  }
 
   calculateMovement(
     position: Vector3,
@@ -183,15 +184,23 @@ export class Plate implements IPlate {
       plate.continetalShape,
     )
 
-    newPlate.borderRegions = new Set<IRegion>(plate.borderRegions)
-    newPlate.neighboringPlates = new Set<IPlate>(plate.neighboringPlates)
-    newPlate.neighboringRegions = new Set<IRegion>(plate.neighboringRegions)
-    newPlate.boundaryVertices = new Set<LatLong>(plate.boundaryVertices)
-
     plate._regions.forEach(r => {
       const region = Region.copy(r)
       newPlate.addRegion(region)
     })
+    newPlate.borderRegionsIds = new Set<string>(plate.borderRegionsIds)
+
+    // newPlate.borderRegions = new Set<IRegion>(
+    //   Array.from(plate.borderRegions).map(r => Region.copy(r)),
+    // )
+    // console.log({
+    //   oldBorderRegions: plate.borderRegions,
+    //   borderRegions: newPlate.borderRegions,
+    // })
+
+    newPlate.neighboringPlates = new Set<IPlate>(plate.neighboringPlates)
+    // newPlate.neighboringRegions = new Set<IRegion>(plate.neighboringRegions)
+    newPlate.boundaryVertices = new Set<LatLong>(plate.boundaryVertices)
 
     return newPlate
   }

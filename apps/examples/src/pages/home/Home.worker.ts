@@ -62,8 +62,10 @@ const colorGenerator: ChunkGenerator3Initializer<
     return jittered
   }
 
+  console.log({ globalGeology })
+
   return ({ worldPosition, height }) => {
-    const region = globalGeology.getRegionFromVector(jitter(worldPosition))
+    const region = globalGeology.getRegionFromVector(worldPosition)
     const plate = region?.plate
     if (plate && region) {
       plateColor.set(seededRandom(plate.id) * 0xffffff)
@@ -77,7 +79,7 @@ const colorGenerator: ChunkGenerator3Initializer<
       if (region.type === PlateType.Oceanic) {
         plateColor.lerp(lerpColor.set(0x2d75b0), 0.9)
       }
-      if (showPlateBoundaries && plate.borderRegions.has(region)) {
+      if (showPlateBoundaries && plate.borderRegionsIds.has(region.id)) {
         plateColor.lerp(lerpColor.set("red"), 0.6)
       }
       return plateColor

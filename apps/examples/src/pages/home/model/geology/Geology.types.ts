@@ -35,6 +35,7 @@ export interface IGeology {
   params: GeologyParams
   continentShapes: SphericalPolygon
   hotspots: Hotspot[]
+  hasRegion: (region: IRegion) => boolean
   addPlate: (plate: IPlate) => void
   addRegion: (region: IRegion) => void
   getPlateFromVector: (position: Vector3) => IPlate | undefined
@@ -69,9 +70,10 @@ export interface IRegion {
   type?: PlateType
   getArea: () => number
   assignPlate: (plate: IPlate) => void
-  getCenterCoordinates: () => LatLong
+  getCenterCoordinates: (latLong?: LatLong) => LatLong
   getNeighbors: () => IRegion[]
   getSharedVertices(region: IRegion): LatLong[]
+  getCenterVector3: (radius: number) => Vector3
 }
 
 export interface IPlate {
@@ -87,6 +89,8 @@ export interface IPlate {
   plateGrowthBiasBearing: number
   neighboringPlates: Set<IPlate>
   boundaryVertices: Set<LatLong>
+  borderRegionsIds: Set<string>
+  growthBias: number
   addRegion: (region: IRegion) => void
   getArea: () => number
   getNeighboringRegions: () => IRegion[]

@@ -1,8 +1,6 @@
 import { randomRange } from "@hello-worlds/core"
 import { LatLong } from "@hello-worlds/planets"
 import {
-  UNITS,
-  cellArea,
   cellToLatLng,
   cellToVertexes,
   getNumCells,
@@ -14,15 +12,18 @@ import {
 import { Vector3 } from "three"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
 import { IPlate, IRegion, PlateType } from "./Geology.types"
-import { RESOLUTION } from "./config"
+import { REGION_AREA, RESOLUTION } from "./config"
 
 const regionMap = new Map<string, Region>()
 const tempLatLong = new LatLong()
 const tempVec3 = new Vector3()
+
 export class Region implements IRegion {
   public readonly polygon: SphericalPolygon
   public plate: IPlate | undefined
   public type?: PlateType
+  #centerCoordinate?: LatLong
+  #centerVec3?: Vector3
   constructor(public readonly id: string) {
     if (!isValidCell(id)) {
       throw new Error("Invalid cell id, must be a valid h3 cell")
@@ -57,12 +58,27 @@ export class Region implements IRegion {
   }
 
   getArea() {
-    return cellArea(this.id, UNITS.m2)
+    return REGION_AREA
   }
 
-  getCenterCoordinates() {
+  getCenterCoordinates(latLong?: LatLong) {
+    if (this.#centerCoordinate) {
+      return this.#centerCoordinate
+    }
     const [lat, lon] = cellToLatLng(this.id)
-    return new LatLong(lat, lon)
+    this.#centerCoordinate = this.#centerCoordinate = new LatLong(lat, lon)
+    return latLong ? latLong.set(lat, lon) : this.#centerCoordinate.clone()
+  }
+
+  getCenterVector3(radius: number) {
+    if (this.#centerVec3) {
+      return this.#centerVec3
+    }
+    const center = this.getCenterCoordinates()
+      .toCartesian(radius, tempVec3)
+      .clone()
+    this.#centerVec3 = center
+    return center.clone()
   }
 
   getNeighborIds() {

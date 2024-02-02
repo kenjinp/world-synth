@@ -1,5 +1,4 @@
-import { shuffle } from "@hello-worlds/core"
-import { Noise } from "@hello-worlds/planets"
+import { LatLong, Noise } from "@hello-worlds/planets"
 import { rhumbBearing } from "@turf/turf"
 import { Vector3 } from "three"
 import { Queue } from "../../../../lib/queue/Queue"
@@ -8,6 +7,8 @@ import { Region } from "./Region"
 
 const vecA = new Vector3()
 const vecB = new Vector3()
+const tempLatLonA = new LatLong()
+const tempLatLongB = new LatLong()
 
 function normalizeAngleDifference(angle1: number, angle2: number): number {
   let angleDifference = Math.abs(angle1 - angle2)
@@ -21,6 +22,7 @@ function normalizeAngleDifference(angle1: number, angle2: number): number {
 }
 
 type QueueItem = { region?: IRegion; plate: IPlate }
+const max = Region.getMaxRegions()
 
 // We'll originate our plates and assign initial values
 export function floodfillPlates(
@@ -37,15 +39,12 @@ export function floodfillPlates(
   const costNoise = new Noise({
     height: params.noiseValue,
     scale: geology.params.radius,
+    octaves: 5,
   })
-
-  const regionIsAlreadyAssigned = (region: IRegion) =>
-    // @ts-ignore
-    geology._regions.has(region.id)
 
   const haveAllRegionsBeenAssigned = () => {
     // @ts-ignore
-    return geology._regions.size === Region.getMaxRegions()
+    return geology._regions.size === max
   }
 
   const assignRegionToPlate = (region: IRegion, plate: IPlate) => {
@@ -57,18 +56,17 @@ export function floodfillPlates(
 
   const costFunction = (region: IRegion, plate: IPlate) => {
     const regionLatLong = region.getCenterCoordinates()
-    const cart = regionLatLong.toCartesian(geology.params.radius, vecB)
     const startingRegionLatLong = plate.initialRegion.getCenterCoordinates()
+    const cart = region.getCenterVector3(geology.params.radius)
     const noise = costNoise.getFromVector(cart)
+    const cartStart = plate.initialRegion.getCenterVector3(
+      geology.params.radius,
+    )
 
     // promote closeness vs distance
     // lower score is better
     const calculateDistanceScore = () => {
-      const cartStart = startingRegionLatLong.toCartesian(
-        geology.params.radius,
-        vecA,
-      )
-      const distance = cart.manhattanDistanceTo(cartStart)
+      const distance = cart.distanceTo(cartStart)
       const normalizedDistance = distance / geology.params.radius
       return normalizedDistance
     }
@@ -94,7 +92,8 @@ export function floodfillPlates(
     const cost =
       (distanceScore * params.distanceScoreBias +
         biasDirectionScore * params.bearingScoreBias) *
-      (1 - noise)
+      (1 - noise) *
+      plate.growthBias
     return cost
   }
 
@@ -103,21 +102,21 @@ export function floodfillPlates(
 
     const regionCandidates = plate.getNeighboringRegions()
 
+    let minCost = Number.MAX_VALUE
+    let minCostRegion: IRegion | undefined = undefined
     for (const region of regionCandidates) {
-      if (!regionIsAlreadyAssigned(region)) {
+      if (!geology.hasRegion(region)) {
         const cost = costFunction(region, plate)
         if (cost < params.maxCost) {
-          nextRegions.push({ region, cost })
+          minCost = Math.min(minCost, cost)
+          if (cost <= minCost) {
+            minCostRegion = region
+          }
         }
       }
     }
 
-    // lower cost first
-    const sortedRegions = nextRegions.sort((a, b) => {
-      return a.cost - b.cost
-    })
-
-    return sortedRegions[0]?.region
+    return minCostRegion
   }
 
   let fronts: Queue<QueueItem>[] = geology.plates.map(
@@ -135,7 +134,7 @@ export function floodfillPlates(
 
   // while the fronts still have enqueued Regions to process, we will continue
   while (fronts.reduce((memo, q) => memo || !q.isEmpty, false) && !quitCond) {
-    fronts = shuffle<typeof fronts>(fronts)
+    // fronts = shuffle<typeof fronts>(fronts)
     for (const front of fronts) {
       const item = front.dequeue()
 
@@ -146,7 +145,7 @@ export function floodfillPlates(
       if (!region) {
         continue
       }
-      const isAssigned = regionIsAlreadyAssigned(region)
+      const isAssigned = geology.hasRegion(region)
       if (!isAssigned) {
         assignRegionToPlate(region, plate)
       }

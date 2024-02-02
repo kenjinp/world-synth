@@ -16,6 +16,7 @@ import {
 } from "./Geology.types"
 import { Plate } from "./Plate"
 import { Region } from "./Region"
+import { Hotspot } from "./hotspots/Hotspot"
 
 const defaultGeologyParams: Partial<GeologyParams> = {
   percentOcean: 0.71,
@@ -124,6 +125,10 @@ export class Geology implements IGeology {
       eventType: GeologyEventType.Generate,
       percentDone: 1.0,
     })
+  }
+
+  hasRegion(region: IRegion) {
+    return this._regions.has(region.id)
   }
 
   addPlate(plate: IPlate) {
@@ -282,7 +287,7 @@ export class Geology implements IGeology {
     this._oceans = new Map(
       Array.from(oceans.values()).map(o => [o.id.toString(), o]),
     )
-    this.hotspots = geology.hotspots
+    this.hotspots = geology.hotspots.map(h => Hotspot.copy(h, geology))
     this.generated = geology.generated
     this.continentShapes = new SphericalPolygon().copy(geology.continentShapes)
     return this

@@ -23,7 +23,7 @@ export default () => {
         step: 1,
       },
       numberOfPlates: {
-        value: 10,
+        value: 20,
         min: 1,
         max: 200,
         step: 1,

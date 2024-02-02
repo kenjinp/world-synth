@@ -79,4 +79,16 @@ export class Hotspot {
     hotspot.random()
     return hotspot
   }
+
+  static copy(hotspot: Hotspot, geology: IGeology) {
+    const newHotspot = new Hotspot(
+      hotspot.magnitude,
+      new LatLong().copy(hotspot.coordinates),
+      geology,
+    )
+    newHotspot.children = hotspot.children.map(child =>
+      Hotspot.copy(child, geology),
+    )
+    return newHotspot
+  }
 }
