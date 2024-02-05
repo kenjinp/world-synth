@@ -38,8 +38,8 @@ export function floodfillPlates(
 ) {
   const costNoise = new Noise({
     height: params.noiseValue,
-    scale: geology.params.radius,
-    octaves: 5,
+    scale: geology.params.radius / 2,
+    octaves: 4,
   })
 
   const haveAllRegionsBeenAssigned = () => {
@@ -89,17 +89,22 @@ export function floodfillPlates(
 
     const distanceScore = calculateDistanceScore()
     const biasDirectionScore = calculateBiasDirectionScore()
+    // const cost =
+    //   smoothMin(
+    //     distanceScore * params.distanceScoreBias,
+    //     biasDirectionScore * params.bearingScoreBias,
+    //     1 - noise,
+    //   ) * plate.growthBias
+
     const cost =
       (distanceScore * params.distanceScoreBias +
         biasDirectionScore * params.bearingScoreBias) *
-      (1 - noise) *
+      (1 - Math.abs(noise)) *
       plate.growthBias
     return cost
   }
 
   const findNextRegionToAssign = (plate: IPlate) => {
-    const nextRegions: { region: IRegion; cost: number }[] = []
-
     const regionCandidates = plate.getNeighboringRegions()
 
     let minCost = Number.MAX_VALUE

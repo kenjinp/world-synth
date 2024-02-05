@@ -54,7 +54,7 @@ const terrainNoise = new Noise({
 const tempLatLong = new LatLong()
 const tempVec3 = new Vector3()
 
-const whateverNoise = (input: Vector3) => {
+export const whateverNoise = (input: Vector3) => {
   const warp = 1 - domainWarpNoise.getFromVector(input)
   const m = smallNoiseMask.getFromVector(input)
   const t = terrainNoise.getFromVector(input)
@@ -63,7 +63,7 @@ const whateverNoise = (input: Vector3) => {
   currentLatLong.set(currentLatLong.lat + warp, currentLatLong.lon + warp)
   const baseHeight = t * m + t2
   let h = baseHeight
-  return { h, baseHeight }
+  return { h, baseHeight, currentLatLong }
 }
 
 function easeOutQuad(x: number): number {
@@ -175,6 +175,12 @@ export class Geology implements IGeology {
     return region
   }
 
+  getRegionFromLatLong(latLong: LatLong) {
+    const regionId = Region.getRegionIdFromLatLong(latLong)
+    const region = this._regions.get(regionId)
+    return region
+  }
+
   getPlateFromLatLong(latLong: LatLong) {
     const regionId = Region.getRegionIdFromLatLong(latLong)
     const region = this._regions.get(regionId)
@@ -186,6 +192,16 @@ export class Geology implements IGeology {
     const regionId = Region.getRegionIdFromLatLong(latLong)
     const region = this._regions.get(regionId)
     return region?.plate
+  }
+
+  getElevationInfoAtVector(position: Vector3) {
+    // what do I need here
+    // 1. distance to coast
+    // elevation increases from coast to center
+    // 2. distance to hotspot (if in range) -> does region contain hotspot
+    // apply hotspot elevation function
+    // 3. distance to each plate boundary that matters
+    // apply plate boundary elevation function depending on type of boundary and magnitude of movement
   }
 
   // getNormalizedElevationAtCoordinate(latLon: LatLong) {

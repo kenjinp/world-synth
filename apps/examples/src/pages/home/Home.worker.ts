@@ -65,6 +65,8 @@ const colorGenerator: ChunkGenerator3Initializer<
   console.log({ globalGeology })
 
   return ({ worldPosition, height }) => {
+    // const pos = whateverNoise(worldPosition)
+    // const region = globalGeology.getRegionFromLatLong(pos.currentLatLong)
     const region = globalGeology.getRegionFromVector(worldPosition)
     const plate = region?.plate
     if (plate && region) {

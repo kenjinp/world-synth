@@ -73,7 +73,7 @@ function* createContinentalCrust(geology: IGeology) {
   const iterator = floodfillPlates(
     geology,
     {
-      noiseValue: 3.0,
+      noiseValue: 4.0,
       maxCost: 1,
       distanceScoreBias: 1.0,
       bearingScoreBias: 0.25,
@@ -123,9 +123,9 @@ function* createOceanicCrust(geology: IGeology) {
   const iterator = floodfillPlates(
     geology,
     {
-      noiseValue: 3.0,
-      maxCost: 1,
-      distanceScoreBias: 0.25,
+      noiseValue: 2.0,
+      maxCost: 1.2,
+      distanceScoreBias: 0.5,
       bearingScoreBias: 1.0,
     },
     function quitConditionOceanCrust() {

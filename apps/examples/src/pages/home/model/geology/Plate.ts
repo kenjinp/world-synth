@@ -42,7 +42,7 @@ export class Plate implements IPlate {
     this.driftRate = randomRange(-Math.PI / 30, Math.PI / 30)
     this.spinRate = randomRange(-Math.PI / 30, Math.PI / 30)
     this.driftAxis = randomUnitVector()
-    this.growthBias = randomRange(0.8, 1.2)
+    this.growthBias = randomRange(0.6, 1.4)
     this.addRegion(initialRegion)
     this.plateGrowthBiasBearing = randomRange(0, 360)
   }
