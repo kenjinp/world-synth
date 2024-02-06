@@ -10,6 +10,7 @@ export enum GeologyEventType {
   CreateOceans = "CreateOceans",
   CreateOceanicPlates = "CreateOceanicPlates",
   CreateHotspots = "CreateHotspots",
+  FillUnassignedPlates = "FillUnassignedPlates",
 }
 
 export type GeologyEventCallback = (payload: {

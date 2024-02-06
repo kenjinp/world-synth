@@ -123,6 +123,11 @@ export class Plate implements IPlate {
           //   this.boundaryVertices.add(vertex)
           // }
         }
+        if (!neighbor.plate) {
+          // this region has no plate
+          // this.addRegion(neighbor)
+          console.warn("region has no plate", neighbor)
+        }
       }
     }
     this.borderRegionsIds = borderRegionsIds

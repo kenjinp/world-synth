@@ -14,6 +14,7 @@ export function generate(
   const createContinentalCrustIterator = createContinentalCrust(geology)
   const createOceanicCrustIterator = createOceanicCrust(geology)
   const createOceanicPlatesIterator = createOceanicPlates(geology)
+  const fillUnassignedPlatesIterator = fillUnassignedPlates(geology)
   const createTectonicBoundariesIterator = createTectonicBoundaries(geology)
   const createHotspotsIterator = createHotspots(geology)
 
@@ -41,6 +42,10 @@ export function generate(
   doIterator(
     createTectonicBoundariesIterator,
     GeologyEventType.CreateOceanicPlates,
+  )
+  doIterator(
+    fillUnassignedPlatesIterator,
+    GeologyEventType.FillUnassignedPlates,
   )
   doIterator(createHotspotsIterator, GeologyEventType.CreateHotspots)
 
@@ -164,11 +169,26 @@ function* createOceanicCrust(geology: IGeology) {
 
 function* createOceanicPlates(geology: IGeology) {
   // number of plates
+
   yield 1.0
   // for (let i = 0; i < geology.params.numberOfInitialPlates; i++) {
   //   const percentDone = i / geology.params.numberOfInitialPlates
   //   yield percentDone
   // }
+}
+
+function* fillUnassignedPlates(geology: IGeology) {
+  yield 0
+  for (const plate of geology.plates) {
+    const percentDone = plate.id / geology.plates.length
+    for (const region of plate.getNeighboringRegions()) {
+      if (!region.plate) {
+        plate.addRegion(region)
+        region.assignPlate(plate)
+      }
+    }
+    yield percentDone
+  }
 }
 
 function* createTectonicBoundaries(geology: IGeology) {
