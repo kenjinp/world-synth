@@ -1,3 +1,4 @@
+import { remap } from "@hello-worlds/planets"
 import { AREA_EARTH } from "../../math/earth"
 import { floodfillPlates } from "./Geology.floodfill"
 import { GeologyEventType, IGeology, PlateType } from "./Geology.types"
@@ -75,9 +76,6 @@ function* createPlates(geology: IGeology) {
 
 function* createContinentalCrust(geology: IGeology) {
   // grow crust until we reach a certain percentage of land
-  let timeStart = performance.now()
-  let currentTime = timeStart
-  let lastTime = timeStart
   let currentAreaAsPercentageOfTarget
   yield 0.0
   const iterator = floodfillPlates(
@@ -95,41 +93,30 @@ function* createContinentalCrust(geology: IGeology) {
         0,
       )
       currentAreaAsPercentageOfTarget = areaLand / areaLandTarget
-      // lastTime = currentTime
-      // currentTime = performance.now()
-      // const timeDiff = currentTime - lastTime
-      // if (timeDiff > 2_000) {
-      //   throw new Error("Continent generation took too long!")
-      // }
-      // console.log(
-      //   "createContinentalCrust",
-      //   `${(currentAreaAsPercentageOfTarget * 100).toFixed(2)}%`,
-      // )
       return currentAreaAsPercentageOfTarget >= 1.0
     },
     region => {
       region.type = PlateType.Continental
     },
   )
-  yield 1.0
 
-  // let iterate = iterator.next()
-  // let tries = 0
-  // while (!iterate.done) {
-  //   yield currentAreaAsPercentageOfTarget // do some calculation here
-  //   iterate = iterator.next()
-  //   tries++
-  // }
+  let iterate = iterator.next()
+  let tries = 0
+  while (!iterate.done) {
+    yield currentAreaAsPercentageOfTarget
+    iterate = iterator.next()
+    tries++
+  }
 }
 
 function* createOceanicCrust(geology: IGeology) {
-  // grow crust until we reach a certain percentage of land
-  let timeStart = performance.now()
-  let currentTime = timeStart
+  // grow ocean until we claim all the regions
   const maxRegions = Region.getMaxRegions()
-  const regionNumberStart = geology.regions.length
-  const regionNumberTarget = maxRegions - regionNumberStart
-  let lastTime = timeStart
+  const regionsAtStart = geology.regions.length
+  const percentAtStart = regionsAtStart / maxRegions
+  let percent = remap(regionsAtStart, regionsAtStart, maxRegions, 0, 1)
+
+  yield percent
   const iterator = floodfillPlates(
     geology,
     {
@@ -139,21 +126,7 @@ function* createOceanicCrust(geology: IGeology) {
       bearingScoreBias: 1.0,
     },
     function quitConditionOceanCrust() {
-      // lastTime = currentTime
-      // currentTime = performance.now()
-      // const timeDiff = currentTime - lastTime
-      // const regions = geology.regions.length
-      // const currentAreaAsPercentageOfTarget =
-      //   regions - regionNumberStart / regionNumberTarget
-      // // console.log("createOceanicCrust timeDiff", timeDiff)
-      // // if (currentTime - timeStart > 2_000) {
-      // //   throw new Error("Continent generation took too long!")
-      // // }
-
-      // console.log(
-      //   "OceanCrust",
-      //   `${(currentAreaAsPercentageOfTarget * 100).toFixed(2)}%`,
-      // )
+      percent = remap(geology.regions.length, regionsAtStart, maxRegions, 0, 1)
 
       return false
     },
@@ -161,15 +134,14 @@ function* createOceanicCrust(geology: IGeology) {
       region.type = PlateType.Oceanic
     },
   )
-  yield 1.0
 
-  // let iterate = iterator.next()
-  // let tries = 0
-  // while (!iterate.done) {
-  //   yield 0.1 // do some calculation here
-  //   iterate = iterator.next()
-  //   tries++
-  // }
+  let iterate = iterator.next()
+  let tries = 0
+  while (!iterate.done) {
+    yield percent
+    iterate = iterator.next()
+    tries++
+  }
 }
 
 function* createOceanicPlates(geology: IGeology) {

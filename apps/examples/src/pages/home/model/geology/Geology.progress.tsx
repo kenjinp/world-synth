@@ -18,22 +18,25 @@ export const GeologyProgress: React.FC = () => {
       setProgress(percentDone || 0)
       let message = "Generating Planet..."
       if (eventType === GeologyEventType.Generate) {
-        message = "Generating Geology..."
+        message = "Offloading Planet from worker..."
       }
       if (eventType === GeologyEventType.CreatePlates) {
         message = "Generating Plates..."
       }
       if (eventType === GeologyEventType.CreateContinents) {
-        message = "Generating Continents..."
+        message = "Generating Continental Crust..."
       }
       if (eventType === GeologyEventType.CreateOceans) {
-        message = "Generating Hybrid Ocean Crust..."
+        message = "Generating Oceanic Crust..."
       }
       if (eventType === GeologyEventType.CreateOceanicPlates) {
         message = "Generating Oceanic Plates..."
       }
       if (eventType === GeologyEventType.CalculateBoundaryStress) {
         message = "Calculating Boundary Stress..."
+      }
+      if (eventType === GeologyEventType.CreateHotspots) {
+        message = "Placing Hot Spots..."
       }
       setMessage(message)
     }

@@ -25,7 +25,7 @@ type QueueItem = { region?: IRegion; plate: IPlate }
 const max = Region.getMaxRegions()
 
 // We'll originate our plates and assign initial values
-export function floodfillPlates(
+export function* floodfillPlates(
   geology: IGeology,
   params: {
     noiseValue: number
@@ -89,12 +89,6 @@ export function floodfillPlates(
 
     const distanceScore = calculateDistanceScore()
     const biasDirectionScore = calculateBiasDirectionScore()
-    // const cost =
-    //   smoothMin(
-    //     distanceScore * params.distanceScoreBias,
-    //     biasDirectionScore * params.bearingScoreBias,
-    //     1 - noise,
-    //   ) * plate.growthBias
 
     const cost =
       (distanceScore * params.distanceScoreBias +
@@ -164,5 +158,6 @@ export function floodfillPlates(
     }
 
     quitCond = quitCondition()
+    yield
   }
 }
