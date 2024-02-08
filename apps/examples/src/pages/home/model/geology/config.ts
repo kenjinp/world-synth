@@ -1,3 +1,5 @@
+import { UNITS, getHexagonEdgeLengthAvg } from "h3-js"
+
 export const RESOLUTION = 3
 // est for 2 = 1_000 ms
 // est for 3 = 35_000 ms :[
@@ -10,3 +12,5 @@ export const AREAS = [
 ]
 
 export const REGION_AREA = AREAS[RESOLUTION]
+
+export const avgEdgeLengthMeters = getHexagonEdgeLengthAvg(RESOLUTION, UNITS.m)

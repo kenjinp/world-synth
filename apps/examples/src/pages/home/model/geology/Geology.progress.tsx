@@ -32,6 +32,9 @@ export const GeologyProgress: React.FC = () => {
       if (eventType === GeologyEventType.CreateOceanicPlates) {
         message = "Generating Oceanic Plates..."
       }
+      if (eventType === GeologyEventType.CalculateBoundaryStress) {
+        message = "Calculating Boundary Stress..."
+      }
       setMessage(message)
     }
     geologyEvents.subscribe(cb)

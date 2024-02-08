@@ -17,6 +17,7 @@ import {
 import { Plate } from "./Plate"
 import { Region } from "./Region"
 import { Hotspot } from "./hotspots/Hotspot"
+import { PlateBoundary } from "./plate-boundaries/PlateBoundary"
 
 const defaultGeologyParams: Partial<GeologyParams> = {
   percentOcean: 0.71,
@@ -74,6 +75,7 @@ export class Geology implements IGeology {
   generated: boolean = false
   params: GeologyParams
   id: string
+  plateBoundaries = new Map<string, PlateBoundary>()
   private _plates: Map<number, IPlate> = new Map()
   private _regions: Map<string, IRegion> = new Map()
   private _continents: Map<string, IContinent> = new Map()
@@ -194,6 +196,18 @@ export class Geology implements IGeology {
     return region?.plate
   }
 
+  addBoundaryEdge(regionA: IRegion, regionB: IRegion) {
+    const plateA = regionA.plate!
+    const plateB = regionB.plate!
+    const plateBoundaryKey = PlateBoundary.createKey(plateA, plateB)
+    let boundary = this.plateBoundaries.get(plateBoundaryKey)
+    if (!boundary) {
+      boundary = new PlateBoundary()
+      this.plateBoundaries.set(plateBoundaryKey, boundary)
+    }
+    boundary.addEdge(regionA, regionB, this)
+  }
+
   getElevationInfoAtVector(position: Vector3) {
     // what do I need here
     // 1. distance to coast
@@ -213,7 +227,7 @@ export class Geology implements IGeology {
   // }
 
   getElevationAtVector(position: Vector3) {
-    let { h, baseHeight } = whateverNoise(position)
+    let { h, currentLatLong } = whateverNoise(position)
     const region = this.getRegionFromVector(position)
     const plate = region?.plate
     // if (this.continentShapes.shape.length) {
@@ -228,6 +242,7 @@ export class Geology implements IGeology {
     // }
 
     if (region && plate) {
+      // h = plate.getDistanceToBorder(currentLatLong)
       // const distanceToCoast = SphericalPolygon.distanceToPolygonEdgeVector3(
       //   position,
       //   plate.shape,
@@ -294,7 +309,7 @@ export class Geology implements IGeology {
       Array.from(regions.values()).map(r => [r.id.toString(), Region.copy(r)]),
     )
     this._plates = new Map(
-      Array.from(plates.values()).map(p => [p.id, Plate.copy(p)]),
+      Array.from(plates.values()).map(p => [p.id, Plate.copy(p, this)]),
     )
 
     this._continents = new Map(
@@ -306,6 +321,12 @@ export class Geology implements IGeology {
     this.hotspots = geology.hotspots.map(h => Hotspot.copy(h, geology))
     this.generated = geology.generated
     this.continentShapes = new SphericalPolygon().copy(geology.continentShapes)
+    this.plateBoundaries = new Map(
+      Array.from(geology.plateBoundaries.entries()).map(([k, v]) => [
+        k,
+        PlateBoundary.copy(v),
+      ]),
+    )
     return this
   }
 

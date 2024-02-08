@@ -2,6 +2,7 @@ import { LatLong } from "@hello-worlds/planets"
 import { Vector3 } from "three"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
 import { Hotspot } from "./hotspots/Hotspot"
+import { PlateBoundary } from "./plate-boundaries/PlateBoundary"
 
 export enum GeologyEventType {
   Generate = "Generate",
@@ -11,6 +12,14 @@ export enum GeologyEventType {
   CreateOceanicPlates = "CreateOceanicPlates",
   CreateHotspots = "CreateHotspots",
   FillUnassignedPlates = "FillUnassignedPlates",
+  CalculateBoundaryStress = "CalculateBoundaryStress",
+}
+
+export enum CollisionType {
+  Dormant = "Dormant",
+  Divergent = "Divergent",
+  Convergent = "Convergent",
+  Transform = "Transform",
 }
 
 export type GeologyEventCallback = (payload: {
@@ -36,6 +45,8 @@ export interface IGeology {
   params: GeologyParams
   continentShapes: SphericalPolygon
   hotspots: Hotspot[]
+  plateBoundaries: Map<string, PlateBoundary>
+  addBoundaryEdge: (regionA: IRegion, regionB: IRegion) => void
   hasRegion: (region: IRegion) => boolean
   addPlate: (plate: IPlate) => void
   addRegion: (region: IRegion) => void
@@ -74,6 +85,7 @@ export interface IRegion {
   getCenterCoordinates: (latLong?: LatLong) => LatLong
   getNeighbors: () => IRegion[]
   getSharedVertices(region: IRegion): LatLong[]
+  getSharedEdgeId(region: IRegion): string
   getCenterVector3: (radius: number) => Vector3
 }
 
@@ -89,7 +101,7 @@ export interface IPlate {
   initialRegion: IRegion
   plateGrowthBiasBearing: number
   neighboringPlates: Set<IPlate>
-  boundaryVertices: Set<LatLong>
+  boundaryVertices: Set<LatLong[]>
   borderRegionsIds: Set<string>
   growthBias: number
   addRegion: (region: IRegion) => void

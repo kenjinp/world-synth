@@ -1,9 +1,10 @@
 import { randomRange } from "@hello-worlds/core"
 import { LatLong } from "@hello-worlds/planets"
+import { lineString, point, pointToLineDistance } from "@turf/turf"
 import { Vector3 } from "three"
 import { MapSet } from "../../../../lib/map-set/MapSet"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
-import { IPlate, IRegion, PlateType } from "./Geology.types"
+import { IGeology, IPlate, IRegion, PlateType } from "./Geology.types"
 import { Region } from "./Region"
 import { REGION_AREA } from "./config"
 
@@ -34,10 +35,16 @@ export class Plate implements IPlate {
   borderRegionsIds = new Set<string>()
   neighboringPlates = new Set<IPlate>()
   neighboringRegions = new Set<IRegion>()
-  boundaryVertices = new Set<LatLong>()
+  boundaryVertices = new Set<LatLong[]>()
   neighboringBoundaryRegions = new MapSet<IPlate, IRegion>()
   growthBias: number
-  constructor(public readonly id: number, initialRegion: IRegion) {
+  #geology: IGeology
+  constructor(
+    public readonly id: number,
+    initialRegion: IRegion,
+    geology: IGeology,
+  ) {
+    this.#geology = geology
     this.initialRegion = initialRegion
     this.driftRate = randomRange(-Math.PI / 30, Math.PI / 30)
     this.spinRate = randomRange(-Math.PI / 30, Math.PI / 30)
@@ -115,17 +122,11 @@ export class Plate implements IPlate {
           borderRegionsIds.add(r.id)
           this.neighboringPlates.add(neighbor.plate)
           this.neighboringBoundaryRegions.add(neighbor.plate, neighbor)
-          // get veritces of the neighbor
-          // compare with vertices of this region
-          // add to list of vertices that are shared
-          // const blah = r.getSharedVertices(neighbor)
-          // for (const vertex of blah) {
-          //   this.boundaryVertices.add(vertex)
-          // }
+
+          this.#geology.addBoundaryEdge(r, neighbor)
         }
         if (!neighbor.plate) {
           // this region has no plate
-          // this.addRegion(neighbor)
           console.warn("region has no plate", neighbor)
         }
       }
@@ -135,6 +136,21 @@ export class Plate implements IPlate {
 
     // this.shape.setFromVertices([...blah, blah[0]])
     return Array.from(borderRegionsIds)
+  }
+
+  getDistanceToBorder(position: LatLong) {
+    const minDistances = Array.from(this.boundaryVertices).map(edge => {
+      const coordinates = edge.map(v => [v.lon, v.lat])
+      const line = lineString(coordinates)
+      return pointToLineDistance(point([position.lon, position.lat]), line, {
+        units: "meters",
+        // method: "geodesic",
+      })
+    })
+
+    // Find the minimum distance from the array of distances
+    const minDistance = Math.min(...minDistances)
+    return minDistance
   }
 
   getNeighboringRegions() {
@@ -176,9 +192,9 @@ export class Plate implements IPlate {
     return movement
   }
 
-  static copy(plate: IPlate) {
+  static copy(plate: IPlate, geology: IGeology) {
     const initialRegion = Region.copy(plate.initialRegion)
-    const newPlate = new Plate(plate.id, initialRegion)
+    const newPlate = new Plate(plate.id, initialRegion, geology)
     newPlate.driftAxis = new Vector3().copy(plate.driftAxis)
     newPlate.driftRate = plate.driftRate
     newPlate.spinRate = plate.spinRate

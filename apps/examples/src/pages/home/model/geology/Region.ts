@@ -3,6 +3,8 @@ import { LatLong } from "@hello-worlds/planets"
 import {
   cellToLatLng,
   cellToVertexes,
+  cellsToDirectedEdge,
+  directedEdgeToBoundary,
   getNumCells,
   gridDisk,
   isValidCell,
@@ -24,9 +26,10 @@ export class Region implements IRegion {
   public type?: PlateType
   #centerCoordinate?: LatLong
   #centerVec3?: Vector3
+  age: number = 0
   constructor(public readonly id: string) {
     if (!isValidCell(id)) {
-      throw new Error("Invalid cell id, must be a valid h3 cell")
+      throw new Error("Invalid cell id, must sbe a valid h3 cell")
     }
     this.polygon = SphericalPolygon.fromH3Cell(id)
   }
@@ -46,15 +49,9 @@ export class Region implements IRegion {
   }
 
   getSharedVertices(region: IRegion) {
-    const vertexIdsA = cellToVertexes(this.id)
-    const vertexIdsB = cellToVertexes(region.id)
-    const sharedVertexIds = vertexIdsA.filter(id => vertexIdsB.includes(id))
-    const sharedVertices = []
-    for (const vertexId of sharedVertexIds) {
-      const [lat, long] = vertexToLatLng(vertexId)
-      sharedVertices.push(new LatLong(lat, long))
-    }
-    return sharedVertices
+    const directedEdge = cellsToDirectedEdge(this.id, region.id)
+    const boundary = directedEdgeToBoundary(directedEdge)
+    return boundary.map(([lat, lon]) => new LatLong(lat, lon))
   }
 
   getArea() {
@@ -83,6 +80,10 @@ export class Region implements IRegion {
 
   getNeighborIds() {
     return gridDisk(this.id, 1)
+  }
+
+  getSharedEdgeId(region: IRegion): string {
+    return cellsToDirectedEdge(this.id, region.id)
   }
 
   getNeighbors() {

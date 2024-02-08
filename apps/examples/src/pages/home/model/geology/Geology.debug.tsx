@@ -3,11 +3,180 @@ import { Billboard, Line, Text } from "@react-three/drei"
 import { ThreeEvent } from "@react-three/fiber"
 import { useControls } from "leva"
 import { useMemo, useState } from "react"
-import { Color, DynamicDrawUsage, MathUtils, Vector3 } from "three"
+import {
+  Color,
+  ColorRepresentation,
+  DynamicDrawUsage,
+  MathUtils,
+  Vector3,
+} from "three"
 import { UI } from "../../../../tunnel"
 import { useGeology } from "./Geology.provider"
+import { CollisionType } from "./Geology.types"
+import {
+  PlateBoundary,
+  PlateBoundaryEdge,
+} from "./plate-boundaries/PlateBoundary"
 
 const tempLatLong = new LatLong()
+
+const PlateBoundaryContiguousEdges: React.FC<
+  React.PropsWithChildren<{
+    edges: PlateBoundaryEdge[]
+    color: ColorRepresentation
+  }>
+> = ({ edges, color, children }) => {
+  const { geology } = useGeology()
+  const { points, vertexColors } = useMemo(() => {
+    const points: Vector3[] = []
+    const vertexColors: Color[] = []
+    edges.forEach(e => {
+      const pressure = Math.max(
+        -1,
+        Math.min((e.forceA.pressure + e.forceB.pressure) / 2, 1),
+      )
+      const pressureColorA =
+        e.forceA.pressure <= 0
+          ? new Color(1 + pressure, 1, 0)
+          : new Color(1, 1 - pressure, 0)
+      const pressureColorB =
+        e.forceB.pressure <= 0
+          ? new Color(1 + pressure, 1, 0)
+          : new Color(1, 1 - pressure, 0)
+      points.push(
+        new Vector3(e.cartA.x, e.cartA.y, e.cartA.z)
+          .normalize()
+          .multiplyScalar(geology.params.radius * 1.001),
+        new Vector3(e.cartB.x, e.cartB.y, e.cartB.z)
+          .normalize()
+          .multiplyScalar(geology.params.radius * 1.001),
+      )
+
+      const typeA = e.forceA.collisionType
+      const typeB = e.forceB.collisionType
+
+      const getColor = (type: CollisionType) => {
+        if (type === CollisionType.Convergent) {
+          return new Color(1, 0, 0)
+        }
+        if (type === CollisionType.Divergent) {
+          return new Color(0, 1, 0)
+        }
+        if (type === CollisionType.Transform) {
+          return new Color(0, 0, 1)
+        }
+        return new Color(1, 1, 1)
+      }
+
+      vertexColors.push(pressureColorA, pressureColorB)
+      // vertexColors.push(getColor(typeA), getColor(typeB))
+      // vertexColors.push(new Color(1, 0, 0), new Color(0, 0, 1))
+    })
+    return { points, vertexColors }
+  }, [edges])
+
+  return (
+    <Line
+      points={points}
+      lineWidth={2}
+      vertexColors={vertexColors}
+      color={color}
+    >
+      {children}
+    </Line>
+  )
+}
+
+const PlateBoundary: React.FC<{ plateBoundary: PlateBoundary }> = ({
+  plateBoundary,
+}) => {
+  const { generated } = useGeology()
+
+  const sortedContiguousEdges = useMemo(() => {
+    return Array.from(plateBoundary.sortedContiguousEdges.values())
+  }, [plateBoundary, generated])
+
+  return sortedContiguousEdges.map((edges, index) => {
+    const small = edges.length === 1
+
+    return (
+      <PlateBoundaryContiguousEdges
+        key={index}
+        edges={Array.from(edges.values()).map(
+          id => plateBoundary.edges.get(id)!,
+        )}
+        color={small ? "black" : "white"}
+      />
+    )
+  })
+}
+
+const Danglers: React.FC<{ plateBoundary: PlateBoundary }> = ({
+  plateBoundary,
+}) => {
+  const { geology } = useGeology()
+
+  return plateBoundary.danglers.map((id, index) => {
+    const e = plateBoundary.edges.get(id)!
+
+    console.log({
+      dangler: e,
+      plateBoundary,
+    })
+
+    return (
+      <mesh key={id}>
+        <Line
+          points={[
+            new Vector3(e.cartA.x, e.cartA.y, e.cartA.z)
+              .normalize()
+              .multiplyScalar(geology.params.radius * 1.001),
+            new Vector3(e.cartB.x, e.cartB.y, e.cartB.z)
+              .normalize()
+              .multiplyScalar(geology.params.radius * 1.001),
+          ]}
+          color="black"
+          lineWidth={10}
+        />
+        <Billboard
+          position={new Vector3(e.cartA.x, e.cartA.y, e.cartA.z)
+            .normalize()
+            .multiplyScalar(geology.params.radius * 1.001)}
+        >
+          <Text
+            color={"black"}
+            anchorX="center"
+            anchorY="middle"
+            fontSize={72}
+            outlineWidth={4}
+            outlineColor="black"
+            scale={1_000}
+          >
+            {e.id}
+          </Text>
+        </Billboard>
+      </mesh>
+    )
+  })
+}
+
+const PlateBoundaries: React.FC = () => {
+  const { geology } = useGeology()
+
+  return Array.from(geology.plateBoundaries.values()).map(pb => {
+    return (
+      <>
+        <PlateBoundary
+          key={Array.from(pb.plates.values())
+            .map(p => p.id)
+            .sort()
+            .join("-")}
+          plateBoundary={pb}
+        />
+      </>
+    )
+  })
+}
 
 const InstancedTectonicMovementIndicator: React.FC = () => {
   const { geology, generated } = useGeology()
@@ -264,20 +433,7 @@ export const GeologyDebug: React.FC = () => {
         <InstancedTectonicMovementIndicator key={`arrows-${geology.id}`} />
       )}
 
-      {/* {Array.from(geology.plates).map(plate => {
-        return Array.from(plate.boundaryVertices).map((vertex, index) => {
-          const position = vertex.toCartesian(
-            geology.params.radius,
-            new Vector3(),
-          )
-          return (
-            <mesh position={position}>
-              <sphereGeometry args={[100_000, 32, 32]} />
-              <meshStandardMaterial color="salmon" />
-            </mesh>
-          )
-        })
-      })} */}
+      <PlateBoundaries />
 
       {showHotspots && <Hotspots />}
 

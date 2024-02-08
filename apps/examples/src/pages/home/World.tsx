@@ -64,6 +64,22 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
 
   console.log("world", geology.id, { generated, geology })
 
+  // const edges = useMemo(() => {
+  //   const value = Array.from(geology.plateBoundaries.values())[0]
+  //   return Array.from(value.edges.values()).reduce(
+  //     (memo, e) => [
+  //       ...memo,
+  //       e.cartA.x,
+  //       e.cartA.y,
+  //       e.cartA.z,
+  //       e.cartB.x,
+  //       e.cartB.y,
+  //       e.cartB.z,
+  //     ],
+  //     [] as number[],
+  //   )
+  // }, [geology])
+
   return generated && geology.generated ? (
     <group>
       <Planet
@@ -84,6 +100,9 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
             uSubgridAlpha: { value: subgridAlpha },
             uContourAlpha: { value: contourAlpha },
             uRadius: { value: EARTH_RADIUS },
+            // uWhatever: {
+            //   value: edges,
+            // },
           }}
           baseMaterial={useShadows ? MeshStandardMaterial : MeshBasicMaterial}
           vertexShader={
@@ -111,6 +130,7 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
             uniform float uContourAlpha;
             uniform float uContourWidth;
             uniform float uRadius;
+
             varying vec2 vUv;
 
             float haversineDistance(vec3 point1, vec3 point2) {
@@ -120,20 +140,24 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
                 return b;
             }
 
-            // float calculateClosestDistanceToPolygonEdge(vec3 point, vec3[] polygon) {
+            float calculateClosestDistanceToLine(vec3 point, vec3 vertex1, vec3 vertex2) {
+                float minDistance = 1000000.0; // A large initial value
+
+                // Calculate distance to the line segment formed by vertex1 and vertex2
+                float edgeDistance = haversineDistance(point, vertex1) + haversineDistance(point, vertex2);
+
+                // Keep track of the minimum distance
+                return min(minDistance, edgeDistance);
+            }
+
+            // float calculateClosestDistanceToEdges(vec3 point) {
             //     float minDistance = 1000000.0; // A large initial value
-
-            //     for (int i = 0; i < polygon.length(); i++) {
-            //         vec3 vertex1 = polygon[i];
-            //         vec3 vertex2 = polygon[(i + 1) % polygon.length()];
-
-            //         // Calculate distance to the line segment formed by vertex1 and vertex2
-            //         float edgeDistance = haversineDistance(point, vertex1) + haversineDistance(point, vertex2);
-
-            //         // Keep track of the minimum distance
+            //     for (int i = 0; i < edgeSize; i++) {
+            //         vec3 vertex1 = uWhatever[i * 2];
+            //         vec3 vertex2 = uWhatever[i * 2 + 1];
+            //         float edgeDistance = calculateClosestDistanceToLine(point, vertex1, vertex2);
             //         minDistance = min(minDistance, edgeDistance);
             //     }
-
             //     return minDistance;
             // }
 
@@ -192,6 +216,7 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
               float dh = fwidth(normalizedElevationAboveDatum);
               float contourLineWidth = lineWidth * 1.0/sqrt(1.0+dh*dh);
               float contourGrid = elevationAboveDatum > 0.0 ? getGridFromFloat(normalizedElevationAboveDatum, 1.0, contourLineWidth) : 0.0;
+
 
               vec3 color = vColor.xyz;
               
