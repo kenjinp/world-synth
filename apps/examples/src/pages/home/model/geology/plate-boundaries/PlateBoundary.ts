@@ -136,6 +136,7 @@ export class PlateBoundaryEdge {
     if (!this.regionA.plate || !this.regionB.plate) {
       throw new Error("Region does not have a plate")
     }
+
     const movementA = this.regionA.plate.calculateMovement(
       point.clone(),
       this.#geology.params.radius,
@@ -146,6 +147,7 @@ export class PlateBoundaryEdge {
     )
     const relativeMovement = movementA.clone().sub(movementB)
     this.relativeMovement = relativeMovement
+
     const pressureVector = relativeMovement.clone().projectOnVector(this.normal)
     let pressure = pressureVector.length()
     if (pressureVector.dot(this.normal) > 0) {
@@ -189,19 +191,6 @@ export class PlateBoundary {
   }
   addEdge(regionA: IRegion, regionB: IRegion, geology: IGeology) {
     const edge = regionA.getSharedVertices(regionB)
-
-    // test line length
-    // const line = lineString([
-    //   [edge[0].lon, edge[0].lon],
-    //   [edge[1].lon, edge[1].lat],
-    // ])
-    // const l = length(line, { units: "meters" })
-    // const ratio = l / avgEdgeLengthMeters
-    // if (ratio < 0.83) {
-    //   console.warn("terrible!", ratio, regionA, regionB)
-    //   return
-    // }
-
     const key = PlateBoundaryEdge.makeKey(edge[0], edge[1])
     if (this.edges.has(key)) {
       return
@@ -233,23 +222,29 @@ export class PlateBoundary {
     // const sigma = 2
     // for (const contiguousEdge of this.sortedContiguousEdges) {
     //   for (let i = 0; i < contiguousEdge.length; i++) {
-    //     let totalWeight = 0;
-    //     let weightedSum = 0;
+    //     let totalWeightA = 0
+    //     let weightedSumA = 0
+    //     let totalWeightB = 0
+    //     let weightedSumB = 0
     //     for (let j = -windowSize; j <= windowSize; j++) {
-    //         const index = i + j;
-    //         if (index >= 0 && index < contiguousEdge.length) {
-    //             const edge = this.edges.get(contiguousEdge[index])!;
-    //             const pressureA = edge.forceA.pressure;
-    //             const pressureB = edge.forceB.pressure;
-    //             const shearA = edge.forceA.shear;
-    //             const shearB = edge.forceB.shear;
-    //             const weightPressureA = gaussian(pressureA, 0, sigma);
-    //             const weightPressureB = gaussian(pressureB, 0, sigma);
-    //             const weightShearA = gaussian(shearA, 0, sigma);
-    //             const weightShearB = gaussian(shearB, 0, sigma);
-    //             weightedSum += pressureA * weightPressureA;
-    //             // totalWeight += weight;
-    //         }
+    //       const index = i + j
+    //       if (index >= 0 && index < contiguousEdge.length) {
+    //         const edge = this.edges.get(contiguousEdge[index])!
+    //         const pressureA = edge.forceA.pressure
+    //         const pressureB = edge.forceB.pressure
+    //         // const shearA = edge.forceA.shear;
+    //         // const shearB = edge.forceB.shear;
+    //         const weightPressureA = gaussian(pressureA, 0.5, sigma)
+    //         const weightPressureB = gaussian(pressureB, 0.5, sigma)
+    //         // const weightShearA = gaussian(shearA, 0, sigma);
+    //         // const weightShearB = gaussian(shearB, 0, sigma);
+    //         weightedSumA += pressureA * weightPressureA
+    //         totalWeightA += weightPressureA
+    //         totalWeightB += pressureB * weightPressureB
+    //         weightedSumB += weightPressureB
+    //         edge.forceA.pressure = weightedSumA / totalWeightA
+    //         edge.forceB.pressure = weightedSumB / totalWeightB
+    //       }
     //     }
     //     // Normalize the weighted sum by the total weight
     //     // output.push(weightedSum / totalWeight);
@@ -276,7 +271,6 @@ export class PlateBoundary {
       const sortedEdges = [startingEdge.id]
 
       if (!remainingEdges.size) {
-        console.warn("something bad probably happened here, only size of one")
         return sortedEdges
       }
 
@@ -297,9 +291,6 @@ export class PlateBoundary {
           )
         })
         if (nextEdges.length > 0) {
-          if (nextEdges.length > 1) {
-            console.warn("more than one edge found in forward pass", nextEdges)
-          }
           nextEdges.sort((a, b) => {
             const aLength = a.getLength()
             const bLength = b.getLength()
@@ -309,6 +300,7 @@ export class PlateBoundary {
           sortedEdges.push(nextEdge.id)
           remainingEdges.delete(nextEdge)
           currentEdge.next = nextEdge.id
+          nextEdge.prev = currentEdge.id
           currentEdge = nextEdge
         } else {
           break
@@ -330,9 +322,6 @@ export class PlateBoundary {
           )
         })
         if (nextEdges.length > 0) {
-          if (nextEdges.length > 1) {
-            console.warn("more than one edge found in backward step", nextEdges)
-          }
           nextEdges.sort((a, b) => {
             const aLength = a.getLength()
             const bLength = b.getLength()
@@ -341,7 +330,8 @@ export class PlateBoundary {
           const nextEdge = nextEdges[0]
           sortedEdges.unshift(nextEdge.id)
           remainingEdges.delete(nextEdge)
-          currentEdge.next = nextEdge.id
+          currentEdge.prev = nextEdge.id
+          nextEdge.next = currentEdge.id
           currentEdge = nextEdge
         } else {
           break
@@ -406,7 +396,6 @@ export class PlateBoundary {
           found = true
           break
         }
-        console.warn("no match inside dangler for loop ", dangler)
       }
       if (!found) {
         this.danglers.push(dangler)

@@ -330,6 +330,34 @@ export class Geology implements IGeology {
     return this
   }
 
+  rotateCoordinate(coord: LatLong, rotationAngle: number): LatLong {
+    // Convert rotation angle to radians
+    const angleRad = (rotationAngle * Math.PI) / 180
+
+    // Convert latitude and longitude from degrees to radians
+    const latRad = (coord.lat * Math.PI) / 180
+    const lngRad = (coord.lon * Math.PI) / 180
+
+    // Calculate the new latitude and longitude after rotation
+    const newLng =
+      (Math.atan2(
+        Math.sin(lngRad - angleRad),
+        Math.cos(latRad) * Math.cos(lngRad - angleRad),
+      ) *
+        180) /
+      Math.PI
+    const newLat =
+      (Math.asin(
+        Math.sin(latRad) * Math.cos(angleRad) +
+          Math.cos(latRad) * Math.sin(angleRad) * Math.cos(lngRad),
+      ) *
+        180) /
+      Math.PI
+
+    // Return the new rotated coordinate
+    return coord.set(newLat, newLng)
+  }
+
   clone(): Geology {
     return new Geology(this.params).copy(this)
   }

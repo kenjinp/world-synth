@@ -12,6 +12,7 @@ import {
   vertexToLatLng,
 } from "h3-js"
 import { Vector3 } from "three"
+import { integerToRGB } from "../../images/Color"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
 import { IPlate, IRegion, PlateType } from "./Geology.types"
 import { REGION_AREA, RESOLUTION } from "./config"
@@ -128,5 +129,18 @@ export class Region implements IRegion {
     r.type = region.type
     r.plate = region.plate
     return r
+  }
+
+  static getRegionIdAsInt(regionId: string) {
+    if (RESOLUTION !== 3) {
+      throw new Error("Only resolution 3 is supported")
+    }
+    const newId = regionId.slice(0, 6)
+    const asInt = parseInt(newId, 16)
+    return asInt
+  }
+
+  static regionIdAsColor(regionId: string) {
+    return integerToRGB(Region.getRegionIdAsInt(regionId))
   }
 }

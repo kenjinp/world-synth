@@ -7,12 +7,16 @@ import {
   Color,
   ColorRepresentation,
   DynamicDrawUsage,
+  Euler,
   MathUtils,
+  Matrix4,
+  Quaternion,
   Vector3,
 } from "three"
 import { UI } from "../../../../tunnel"
 import { useGeology } from "./Geology.provider"
 import { CollisionType } from "./Geology.types"
+import { Region } from "./Region"
 import {
   PlateBoundary,
   PlateBoundaryEdge,
@@ -76,14 +80,34 @@ const PlateBoundaryContiguousEdges: React.FC<
   }, [edges])
 
   return (
-    <Line
-      points={points}
-      lineWidth={2}
-      vertexColors={vertexColors}
-      color={color}
-    >
-      {children}
-    </Line>
+    <>
+      <Billboard
+        position={points[0]
+          .clone()
+          .normalize()
+          .multiplyScalar(geology.params.radius * 1.05)}
+      >
+        <Text
+          color={"black"}
+          anchorX="center"
+          anchorY="middle"
+          fontSize={72}
+          outlineWidth={4}
+          outlineColor="black"
+          scale={1_000}
+        >
+          Edge Start {edges[0].id}
+        </Text>
+      </Billboard>
+      <Line
+        points={points}
+        lineWidth={2}
+        vertexColors={vertexColors}
+        color={color}
+      >
+        {children}
+      </Line>
+    </>
   )
 }
 
@@ -349,6 +373,24 @@ const Hotspots: React.FC = () => {
   return hotspots
 }
 
+const tempQuat = new Quaternion()
+const tempMatrix = new Matrix4()
+
+function rotateVectorByEuler(
+  position: THREE.Vector3,
+  euler: THREE.Euler,
+): THREE.Vector3 {
+  // Create a Quaternion from the Euler angles
+  const quaternion = tempQuat.setFromEuler(euler)
+
+  // Create a rotation matrix from the Quaternion
+  const rotationMatrix = tempMatrix.makeRotationFromQuaternion(quaternion)
+
+  // Apply the rotation to the position
+  return position.applyMatrix4(rotationMatrix)
+}
+
+const axis = new Euler(0, 0, (-23.5 * Math.PI) / 180)
 export const GeologyDebug: React.FC = () => {
   const { geology } = useGeology()
   const [hovering, setHover] = useState(false)
@@ -358,10 +400,16 @@ export const GeologyDebug: React.FC = () => {
   })
 
   const handleDebugHover = (e: ThreeEvent<PointerEvent>) => {
-    const point = e.point
+    let point = e.point
+    rotateVectorByEuler(point, axis)
 
     const latLong = LatLong.cartesianToLatLong(point, tempLatLong)
     const region = geology.getRegionFromVector(point)
+
+    if (region) {
+      geology.hoverId = Region.getRegionIdAsInt(region?.id)
+    }
+
     const plate = geology.getPlateFromVector(point)
     const regionDebugDisplay = document.getElementById("debug-region")
     const neighborPlates = Array.from(plate?.neighboringPlates || [])
@@ -421,8 +469,9 @@ export const GeologyDebug: React.FC = () => {
               position: "fixed",
               top: 0,
               left: 0,
-              background: "black",
+              background: "rgba(0,0,0,0.25)",
               padding: "1em",
+              backdropFilter: "blur(10px)",
             }}
             id="debug-region"
           ></div>

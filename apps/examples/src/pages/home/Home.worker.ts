@@ -55,6 +55,7 @@ const colorGenerator: ChunkGenerator3Initializer<
     octaves: 20,
   })
   const tempVec3 = new Vector3()
+  const tempLatLong = new LatLong()
 
   const jitter = (input: Vector3) => {
     const noiseValue = 1 - noise.getFromVector(input)
@@ -65,9 +66,20 @@ const colorGenerator: ChunkGenerator3Initializer<
   console.log({ globalGeology })
 
   return ({ worldPosition, height }) => {
+    // const latLong = templLatLong.cartesianToLatLong(worldPosition)
+
+    // const longUV = (latLong.lon + 180) / 360
+    // const latUV = (latLong.lat + 90) / 180
+    // return color.setRGB(longUV, 0, 0)
+
     // const pos = whateverNoise(worldPosition)
     // const region = globalGeology.getRegionFromLatLong(pos.currentLatLong)
     const region = globalGeology.getRegionFromVector(worldPosition)
+    // if (region) {
+    //   const c = Region.regionIdAsColor(region.id)
+    //   return color.setRGB(c[0], c[1], c[2])
+    // }
+    // return color
     const plate = region?.plate
     if (plate && region) {
       plateColor.set(seededRandom(plate.id) * 0xffffff)

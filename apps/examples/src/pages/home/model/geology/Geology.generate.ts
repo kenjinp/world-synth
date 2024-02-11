@@ -25,16 +25,12 @@ export function generate(
     event: GeologyEventType,
   ) {
     let next
-    console.time(event)
     let iterations = 0
     while (!next?.done) {
-      console.time(`${event}:${iterations}`)
       next = iterator.next()
       callEvent(event, { percentDone: next.value as number })
       iterations++
-      console.timeEnd(`${event}:${iterations}`)
     }
-    console.timeEnd(event)
   }
 
   doIterator(createPlatesIterator, GeologyEventType.CreatePlates)
@@ -81,10 +77,10 @@ function* createContinentalCrust(geology: IGeology) {
   const iterator = floodfillPlates(
     geology,
     {
-      noiseValue: 4.0,
+      noiseValue: 3.4,
       maxCost: 1,
-      distanceScoreBias: 1.0,
-      bearingScoreBias: 0.25,
+      distanceScoreBias: 2.0,
+      bearingScoreBias: 0.5,
     },
     function quitCondition() {
       const areaLandTarget = (1 - geology.params.percentOcean) * AREA_EARTH
@@ -122,8 +118,8 @@ function* createOceanicCrust(geology: IGeology) {
     {
       noiseValue: 2.0,
       maxCost: 3.0,
-      distanceScoreBias: 0.5,
-      bearingScoreBias: 1.0,
+      distanceScoreBias: 1.0,
+      bearingScoreBias: 0.5,
     },
     function quitConditionOceanCrust() {
       percent = remap(geology.regions.length, regionsAtStart, maxRegions, 0, 1)
@@ -185,6 +181,7 @@ function* calculateBoundaryStress(geology: IGeology) {
     const percentDone = i / geology.plateBoundaries.size
     boundary.calculateStress()
     boundary.calculateContiguousEdges()
+    boundary.blurBoundaryStress()
     yield percentDone
     i++
   }
