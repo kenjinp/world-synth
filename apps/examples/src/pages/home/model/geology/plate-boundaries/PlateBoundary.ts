@@ -250,6 +250,52 @@ export class PlateBoundary {
     //     // output.push(weightedSum / totalWeight);
     //   }
     // }
+
+    for (const contiguousEdge of this.sortedContiguousEdges) {
+      const newCornerPressure = new Array(contiguousEdge.length)
+      const newCornerShear = new Array(contiguousEdge.length)
+      const stressBlurIterations = 10
+      const stressBlurCenterWeighting = 0.4
+
+      for (var i = 0; i < stressBlurIterations; ++i) {
+        for (var j = 0; j < newCornerPressure.length; ++j) {
+          var edgeId = contiguousEdge[j]
+          const edge = this.edges.get(edgeId)!
+          var averagePressure = 0
+          var averageShear = 0
+          var neighborCount = 0
+
+          if (edge.prev) {
+            const prev = this.edges.get(edge.prev)!
+            averagePressure += prev.forceB.pressure
+            averageShear += prev.forceB.shear
+            ++neighborCount
+          }
+
+          averagePressure += edge.forceA.pressure
+          averageShear += edge.forceA.shear
+          ++neighborCount
+
+          averagePressure += edge.forceB.pressure
+          averageShear += edge.forceB.shear
+          ++neighborCount
+
+          if (edge.next) {
+            const next = this.edges.get(edge.next)!
+            averagePressure += next.forceA.pressure
+            averageShear += next.forceA.shear
+            ++neighborCount
+          }
+
+          edge.forceA.pressure =
+            edge.forceA.pressure * stressBlurCenterWeighting +
+            (averagePressure / neighborCount) * (1 - stressBlurCenterWeighting)
+          edge.forceA.shear =
+            edge.forceA.shear * stressBlurCenterWeighting +
+            (averageShear / neighborCount) * (1 - stressBlurCenterWeighting)
+        }
+      }
+    }
   }
 
   clone() {

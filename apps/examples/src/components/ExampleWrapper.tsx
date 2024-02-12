@@ -1,5 +1,6 @@
 import { EARTH_RADIUS } from "@hello-worlds/planets"
 import { CameraControls } from "@react-three/drei"
+import { useFrame, useThree } from "@react-three/fiber"
 import * as React from "react"
 import { DirectionalLight, Object3D, Vector3 } from "three"
 
@@ -22,6 +23,7 @@ const lightOrigin = new Vector3(
   // -11869.589999777365,
 )
 const lightTarget = new Vector3(0, 0, 0)
+const tempVec3 = new Vector3()
 
 export const ExampleWrapper: React.FC<
   React.PropsWithChildren<{
@@ -40,7 +42,10 @@ export const ExampleWrapper: React.FC<
     />
   ),
 }) => {
+  const camera = useThree(state => state.camera)
+
   const dirLightRef = React.useRef<DirectionalLight>(null)
+  const shadowLightRef = React.useRef<DirectionalLight>(null)
 
   const [target] = React.useState(() => {
     const obj = new Object3D()
@@ -49,6 +54,12 @@ export const ExampleWrapper: React.FC<
   })
 
   const lightIntensity = 4
+
+  useFrame(() => {
+    lightOrigin.copy(camera.position) //.add(tempVec3.set(EARTH_RADIUS, 0, 0))
+    dirLightRef.current?.position.copy(lightOrigin)
+    shadowLightRef.current?.position.copy(lightOrigin)
+  })
 
   return (
     <>
@@ -74,7 +85,7 @@ export const ExampleWrapper: React.FC<
         shadow-bias={-0.003}
       />
       <directionalLight
-        ref={dirLightRef}
+        ref={shadowLightRef}
         name="sun-no-shadow"
         intensity={lightIntensity * 0.3}
         position={lightOrigin}

@@ -61,7 +61,7 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
       step: 500,
     },
     showPlateBoundaries: false,
-    useShadows: false,
+    useShadows: true,
   })
 
   const data = useMemo(() => {
