@@ -28,6 +28,7 @@ export class Region implements IRegion {
   #centerCoordinate?: LatLong
   #centerVec3?: Vector3
   age: number = 0
+  elevation: number = 0
   constructor(public readonly id: string) {
     if (!isValidCell(id)) {
       throw new Error("Invalid cell id, must sbe a valid h3 cell")
@@ -128,6 +129,7 @@ export class Region implements IRegion {
     const r = Region.getRegion(region.id)
     r.type = region.type
     r.plate = region.plate
+    r.elevation = region.elevation
     return r
   }
 

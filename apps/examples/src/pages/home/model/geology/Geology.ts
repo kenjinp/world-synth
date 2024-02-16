@@ -227,7 +227,8 @@ export class Geology implements IGeology {
   // }
 
   getElevationAtVector(position: Vector3) {
-    let { h, currentLatLong } = whateverNoise(position)
+    // let { h, currentLatLong } = whateverNoise(position)
+    let h = 0
     const region = this.getRegionFromVector(position)
     const plate = region?.plate
     // if (this.continentShapes.shape.length) {
@@ -242,6 +243,7 @@ export class Geology implements IGeology {
     // }
 
     if (region && plate) {
+      h = region.elevation
       // h = plate.getDistanceToBorder(currentLatLong)
       // const distanceToCoast = SphericalPolygon.distanceToPolygonEdgeVector3(
       //   position,

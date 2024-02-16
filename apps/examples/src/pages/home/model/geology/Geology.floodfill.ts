@@ -39,7 +39,7 @@ export function* floodfillPlates(
   const costNoise = new Noise({
     height: params.noiseValue,
     scale: geology.params.radius / 2,
-    octaves: 4,
+    octaves: 5,
   })
 
   const haveAllRegionsBeenAssigned = () => {

@@ -7,13 +7,12 @@ import {
   Color,
   ColorRepresentation,
   DynamicDrawUsage,
-  Euler,
   MathUtils,
-  Matrix4,
-  Quaternion,
   Vector3,
 } from "three"
 import { UI } from "../../../../tunnel"
+import { AXIAL_TILT } from "../../math/earth"
+import { rotateVectorByEuler } from "../../math/rotation"
 import { useGeology } from "./Geology.provider"
 import { CollisionType } from "./Geology.types"
 import { Region } from "./Region"
@@ -72,8 +71,8 @@ const PlateBoundaryContiguousEdges: React.FC<
         return new Color(1, 1, 1)
       }
 
-      vertexColors.push(pressureColorA, pressureColorB)
-      // vertexColors.push(getColor(typeA), getColor(typeB))
+      // vertexColors.push(pressureColorA, pressureColorB)
+      vertexColors.push(getColor(typeA), getColor(typeB))
       // vertexColors.push(new Color(1, 0, 0), new Color(0, 0, 1))
     })
     return { points, vertexColors }
@@ -373,35 +372,19 @@ const Hotspots: React.FC = () => {
   return hotspots
 }
 
-const tempQuat = new Quaternion()
-const tempMatrix = new Matrix4()
-
-function rotateVectorByEuler(
-  position: THREE.Vector3,
-  euler: THREE.Euler,
-): THREE.Vector3 {
-  // Create a Quaternion from the Euler angles
-  const quaternion = tempQuat.setFromEuler(euler)
-
-  // Create a rotation matrix from the Quaternion
-  const rotationMatrix = tempMatrix.makeRotationFromQuaternion(quaternion)
-
-  // Apply the rotation to the position
-  return position.applyMatrix4(rotationMatrix)
-}
-
-const axis = new Euler(0, 0, (-23.5 * Math.PI) / 180)
 export const GeologyDebug: React.FC = () => {
   const { geology } = useGeology()
   const [hovering, setHover] = useState(false)
-  const { showHotspots, showTectonicMovement } = useControls({
-    showHotspots: false,
-    showTectonicMovement: false,
-  })
+  const { showHotspots, showTectonicMovement, showPlateBoundaries } =
+    useControls({
+      showHotspots: false,
+      showTectonicMovement: false,
+      showPlateBoundaries: false,
+    })
 
   const handleDebugHover = (e: ThreeEvent<PointerEvent>) => {
     let point = e.point
-    rotateVectorByEuler(point, axis)
+    rotateVectorByEuler(point, AXIAL_TILT)
 
     const latLong = LatLong.cartesianToLatLong(point, tempLatLong)
     const region = geology.getRegionFromVector(point)
@@ -435,6 +418,9 @@ export const GeologyDebug: React.FC = () => {
           <p>
           <p>
            Crust Type: ${region.type}
+          </p>
+          <p>
+           Normalized Elevation: ${region.elevation}
           </p>
         </div>
         `
@@ -482,7 +468,7 @@ export const GeologyDebug: React.FC = () => {
         <InstancedTectonicMovementIndicator key={`arrows-${geology.id}`} />
       )}
 
-      <PlateBoundaries />
+      {showPlateBoundaries && <PlateBoundaries />}
 
       {showHotspots && <Hotspots />}
 

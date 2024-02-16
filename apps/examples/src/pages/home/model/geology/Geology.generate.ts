@@ -5,6 +5,7 @@ import { GeologyEventType, IGeology, PlateType } from "./Geology.types"
 import { Plate } from "./Plate"
 import { Region } from "./Region"
 import { Hotspot } from "./hotspots/Hotspot"
+import { floodfillElevations } from "./plate-boundaries/Elevations.floodfill"
 
 export function generate(
   geology: IGeology,
@@ -18,6 +19,7 @@ export function generate(
   const fillUnassignedPlatesIterator = fillUnassignedPlates(geology)
   const createTectonicBoundariesIterator = createTectonicBoundaries(geology)
   const calculateBoundaryStressIterator = calculateBoundaryStress(geology)
+  const calculateRegionalElevationIterator = calculateRegionalElevation(geology)
   const createHotspotsIterator = createHotspots(geology)
 
   function doIterator(
@@ -49,6 +51,10 @@ export function generate(
     calculateBoundaryStressIterator,
     GeologyEventType.CalculateBoundaryStress,
   )
+  doIterator(
+    calculateRegionalElevationIterator,
+    GeologyEventType.CalculateRegionalElevation,
+  )
   doIterator(createHotspotsIterator, GeologyEventType.CreateHotspots)
 
   console.timeEnd("Generate")
@@ -65,6 +71,7 @@ function* createPlates(geology: IGeology) {
     const plate = new Plate(i, initialRegion, geology)
     geology.addRegion(initialRegion)
     geology.addPlate(plate)
+    initialRegion.elevation = plate.landElevation
 
     yield percentDone
   }
@@ -91,8 +98,9 @@ function* createContinentalCrust(geology: IGeology) {
       currentAreaAsPercentageOfTarget = areaLand / areaLandTarget
       return currentAreaAsPercentageOfTarget >= 1.0
     },
-    region => {
+    (region, plate) => {
       region.type = PlateType.Continental
+      region.elevation = plate.landElevation
     },
   )
 
@@ -117,7 +125,7 @@ function* createOceanicCrust(geology: IGeology) {
     geology,
     {
       noiseValue: 2.0,
-      maxCost: 3.0,
+      maxCost: 2.0,
       distanceScoreBias: 1.0,
       bearingScoreBias: 0.5,
     },
@@ -126,8 +134,9 @@ function* createOceanicCrust(geology: IGeology) {
 
       return false
     },
-    region => {
+    (region, plate) => {
       region.type = PlateType.Oceanic
+      region.elevation = plate.oceanElevation
     },
   )
 
@@ -182,8 +191,18 @@ function* calculateBoundaryStress(geology: IGeology) {
     boundary.calculateStress()
     boundary.calculateContiguousEdges()
     boundary.blurBoundaryStress()
+    boundary.calculateBoundaryType()
     yield percentDone
     i++
+  }
+}
+
+function* calculateRegionalElevation(geology: IGeology) {
+  const iterator = floodfillElevations(geology)
+  let iterate = iterator.next()
+  while (!iterate.done) {
+    iterate = iterator.next()
+    yield iterate
   }
 }
 

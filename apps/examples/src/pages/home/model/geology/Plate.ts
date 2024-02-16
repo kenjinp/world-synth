@@ -38,6 +38,8 @@ export class Plate implements IPlate {
   boundaryVertices = new Set<LatLong[]>()
   neighboringBoundaryRegions = new MapSet<IPlate, IRegion>()
   growthBias: number
+  landElevation: number = randomRange(0.000006, 0.03)
+  oceanElevation: number = randomRange(-0.5, -0.1)
   #geology: IGeology
   constructor(
     public readonly id: number,
@@ -204,6 +206,8 @@ export class Plate implements IPlate {
     newPlate.continetalShape = new SphericalPolygon().copy(
       plate.continetalShape,
     )
+    newPlate.landElevation = plate.landElevation
+    newPlate.oceanElevation = plate.oceanElevation
 
     plate._regions.forEach(r => {
       const region = Region.copy(r)

@@ -35,6 +35,9 @@ export const GeologyProgress: React.FC = () => {
       if (eventType === GeologyEventType.CalculateBoundaryStress) {
         message = "Calculating Boundary Stress..."
       }
+      if (eventType === GeologyEventType.CalculateRegionalElevation) {
+        message = "Calculating Elevations..."
+      }
       if (eventType === GeologyEventType.CreateHotspots) {
         message = "Placing Hot Spots..."
       }

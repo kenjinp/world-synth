@@ -13,6 +13,7 @@ export enum GeologyEventType {
   CreateHotspots = "CreateHotspots",
   FillUnassignedPlates = "FillUnassignedPlates",
   CalculateBoundaryStress = "CalculateBoundaryStress",
+  CalculateRegionalElevation = "CalculateRegionalElevation",
 }
 
 export enum CollisionType {
@@ -80,6 +81,7 @@ export interface IRegion {
   polygon: SphericalPolygon
   plate?: IPlate
   type?: PlateType
+  elevation: number
   getArea: () => number
   assignPlate: (plate: IPlate) => void
   getCenterCoordinates: (latLong?: LatLong) => LatLong
@@ -104,6 +106,8 @@ export interface IPlate {
   boundaryVertices: Set<LatLong[]>
   borderRegionsIds: Set<string>
   growthBias: number
+  landElevation: number
+  oceanElevation: number
   addRegion: (region: IRegion) => void
   getArea: () => number
   getNeighboringRegions: () => IRegion[]

@@ -1,4 +1,5 @@
-import { remap } from "@hello-worlds/planets"
+import { Lerp, LinearSpline, remap } from "@hello-worlds/planets"
+import { Color } from "three"
 
 export interface ColorElevation {
   color: string
@@ -27,3 +28,26 @@ export const noaaRamp: ColorElevation[] = [
 ]
   .map(c => ({ ...c, elevation: remap(c.elevation, -8000, 8000, 0, 1) }))
   .sort((a, b) => a.elevation - b.elevation)
+
+console.log({
+  noaaRamp,
+})
+
+const colorLerp: Lerp<THREE.Color> = (
+  t: number,
+  p0: THREE.Color,
+  p1: THREE.Color,
+) => {
+  const c = p0.clone()
+  return c.lerp(p1, t)
+}
+
+function createColorSplineFromColorElevation(colorElevation: ColorElevation[]) {
+  const colorSpline = new LinearSpline<Color>(colorLerp)
+  colorElevation.forEach(({ color, elevation }) => {
+    colorSpline.addPoint(elevation, new Color(color))
+  })
+  return colorSpline
+}
+
+export const nooaColorSpline = createColorSplineFromColorElevation(noaaRamp)

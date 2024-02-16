@@ -4,69 +4,6 @@ import { Vector3 } from "three"
 import { MapSet, findAllInSet } from "../../../../../lib/map-set/MapSet"
 import { CollisionType, IGeology, IPlate, IRegion } from "../Geology.types"
 
-// Function to calculate the Gaussian distribution
-function gaussian(x: number, mean: number, standardDeviation: number): number {
-  return (
-    Math.exp(-((x - mean) ** 2) / (2 * standardDeviation ** 2)) /
-    Math.sqrt(2 * Math.PI * standardDeviation ** 2)
-  )
-}
-
-// Function to apply Gaussian blur with sliding window
-function gaussianBlur(
-  input: number[],
-  windowSize: number,
-  sigma: number,
-): number[] {
-  const output: number[] = []
-
-  for (let i = 0; i < input.length; i++) {
-    let totalWeight = 0
-    let weightedSum = 0
-
-    for (let j = -windowSize; j <= windowSize; j++) {
-      const index = i + j
-      if (index >= 0 && index < input.length) {
-        const weight = gaussian(j, 0, sigma) // Calculate Gaussian weight
-        weightedSum += input[index] * weight
-        totalWeight += weight
-      }
-    }
-
-    // Normalize the weighted sum by the total weight
-    output.push(weightedSum / totalWeight)
-  }
-
-  return output
-}
-
-// Divergent:
-//   Spreading center
-//   Extension zone
-// Convergent:
-//   Subduction zone
-//   Collision zone
-// Transform:
-//   Dextral transform
-//   Sinistral transform
-
-// export enum PlateBoundaryType {
-//   Divergent = "Divergent",
-//   Convergent = "Convergent",
-//   Transform = "Transform",
-// }
-
-// Lets First define the plat boundaries
-// then we can define region's age (from expanding regions)
-// or the age from their furthest point
-
-// Cool oceanic lithosphere is significantly denser than the hot mantle material from which it is derived and so with increasing thickness it gradually subsides into the mantle to compensate the greater load.
-// The result is a slight lateral incline with increased distance from the ridge axis.
-
-// Trenches
-
-// Hotspots
-
 // An edge between to plates!
 export class PlateBoundaryEdge {
   id: string
@@ -88,6 +25,7 @@ export class PlateBoundaryEdge {
   normal: Vector3
   relativeMovement?: Vector3
   #geology: IGeology
+  elevation: number = 0
   constructor(
     public latLongA: LatLong,
     public latLongB: LatLong,
@@ -132,6 +70,48 @@ export class PlateBoundaryEdge {
     this.forceB = this.calculateStressAtPoint(this.cartB)
   }
 
+  calculateBoundaryType() {
+    this.calculateBoundaryTypeForForce(this.forceA)
+    this.calculateBoundaryTypeForForce(this.forceB)
+  }
+
+  calculateBoundaryTypeForForce(force: {
+    pressure: number
+    shear: number
+    collisionType?: CollisionType
+  }) {
+    const pressure = force.pressure
+    const shear = force.shear
+    let collisionType = CollisionType.Dormant
+    const BOUNDARY_PRESSURE_CONSTANT = 0.25
+
+    if (pressure > BOUNDARY_PRESSURE_CONSTANT) {
+      collisionType = CollisionType.Convergent
+    } else if (pressure < -BOUNDARY_PRESSURE_CONSTANT) {
+      collisionType = CollisionType.Divergent
+    } else if (shear > BOUNDARY_PRESSURE_CONSTANT) {
+      collisionType = CollisionType.Transform
+    }
+
+    force.collisionType = collisionType
+  }
+
+  calculateDistanceToRegion(region: IRegion) {
+    const center = region.getCenterVector3(this.#geology.params.radius)
+    const distanceA = center.distanceTo(this.cartA)
+    const distanceB = center.distanceTo(this.cartB)
+    return Math.min(distanceA, distanceB)
+  }
+
+  calculateDistanceToPlateRoot(region: IRegion) {
+    const center = region.plate!.initialRegion.getCenterVector3(
+      this.#geology.params.radius,
+    )
+    const distanceA = center.distanceTo(this.cartA)
+    const distanceB = center.distanceTo(this.cartB)
+    return Math.min(distanceA, distanceB)
+  }
+
   calculateStressAtPoint(point: Vector3) {
     if (!this.regionA.plate || !this.regionB.plate) {
       throw new Error("Region does not have a plate")
@@ -154,7 +134,7 @@ export class PlateBoundaryEdge {
       pressure = -pressure
     }
     let shear = relativeMovement.clone().projectOnVector(this.vector).length()
-    const normalize = this.#geology.params.radius / 100
+    const normalize = this.#geology.params.radius / 50
     pressure = 2 / (1 + Math.exp(-pressure / normalize)) - 1
     shear = 2 / (1 + Math.exp(-shear / normalize)) - 1
 
@@ -217,40 +197,13 @@ export class PlateBoundary {
     }
   }
 
-  blurBoundaryStress() {
-    // const windowSize = 3
-    // const sigma = 2
-    // for (const contiguousEdge of this.sortedContiguousEdges) {
-    //   for (let i = 0; i < contiguousEdge.length; i++) {
-    //     let totalWeightA = 0
-    //     let weightedSumA = 0
-    //     let totalWeightB = 0
-    //     let weightedSumB = 0
-    //     for (let j = -windowSize; j <= windowSize; j++) {
-    //       const index = i + j
-    //       if (index >= 0 && index < contiguousEdge.length) {
-    //         const edge = this.edges.get(contiguousEdge[index])!
-    //         const pressureA = edge.forceA.pressure
-    //         const pressureB = edge.forceB.pressure
-    //         // const shearA = edge.forceA.shear;
-    //         // const shearB = edge.forceB.shear;
-    //         const weightPressureA = gaussian(pressureA, 0.5, sigma)
-    //         const weightPressureB = gaussian(pressureB, 0.5, sigma)
-    //         // const weightShearA = gaussian(shearA, 0, sigma);
-    //         // const weightShearB = gaussian(shearB, 0, sigma);
-    //         weightedSumA += pressureA * weightPressureA
-    //         totalWeightA += weightPressureA
-    //         totalWeightB += pressureB * weightPressureB
-    //         weightedSumB += weightPressureB
-    //         edge.forceA.pressure = weightedSumA / totalWeightA
-    //         edge.forceB.pressure = weightedSumB / totalWeightB
-    //       }
-    //     }
-    //     // Normalize the weighted sum by the total weight
-    //     // output.push(weightedSum / totalWeight);
-    //   }
-    // }
+  calculateBoundaryType() {
+    for (const [, edge] of this.edges) {
+      edge.calculateBoundaryType()
+    }
+  }
 
+  blurBoundaryStress() {
     for (const contiguousEdge of this.sortedContiguousEdges) {
       const newCornerPressure = new Array(contiguousEdge.length)
       const newCornerShear = new Array(contiguousEdge.length)

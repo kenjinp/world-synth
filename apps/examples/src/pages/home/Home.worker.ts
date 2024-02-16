@@ -4,16 +4,18 @@ import {
   LatLong,
   Noise,
   createThreadedPlanetWorker,
+  remap,
 } from "@hello-worlds/planets"
 import { Color, Vector3 } from "three"
 import { seededRandom } from "three/src/math/MathUtils"
+import { nooaColorSpline } from "./math/ColorRamp"
 import { Geology } from "./model/geology/Geology"
-import { PlateType } from "./model/geology/Geology.types"
 
 export type ThreadParams = {
   seed: string
   geology: Geology
   showPlateBoundaries: boolean
+  showPlateColors: boolean
 }
 
 let globalGeology: Geology
@@ -43,7 +45,10 @@ function hashStringToInt(input: string): number {
 const colorGenerator: ChunkGenerator3Initializer<
   ThreadParams,
   Color | ColorArrayWithAlpha
-> = ({ radius, data: { geology, seed, showPlateBoundaries } }) => {
+> = ({
+  radius,
+  data: { geology, seed, showPlateBoundaries, showPlateColors },
+}) => {
   const color = new Color(0xffffff * Math.random())
   const plateColor = new Color()
   const regionColor = new Color()
@@ -56,6 +61,7 @@ const colorGenerator: ChunkGenerator3Initializer<
   })
   const tempVec3 = new Vector3()
   const tempLatLong = new LatLong()
+  const ramp = nooaColorSpline
 
   const jitter = (input: Vector3) => {
     const noiseValue = 1 - noise.getFromVector(input)
@@ -66,6 +72,7 @@ const colorGenerator: ChunkGenerator3Initializer<
   console.log({ globalGeology })
 
   return ({ worldPosition, height }) => {
+    const h = remap(height, -1, 1, 0, 1)
     // const latLong = templLatLong.cartesianToLatLong(worldPosition)
 
     // const longUV = (latLong.lon + 180) / 360
@@ -82,19 +89,24 @@ const colorGenerator: ChunkGenerator3Initializer<
     // return color
     const plate = region?.plate
     if (plate && region) {
-      plateColor.set(seededRandom(plate.id) * 0xffffff)
-      plateColor.lerp(
-        regionColor.set(seededRandom(hashStringToInt(region.id)) * 0xffffff),
-        0.5,
-      )
-      if (region.type === PlateType.Continental) {
-        plateColor.lerp(lerpColor.set(0x175515), 0.9)
-      }
-      if (region.type === PlateType.Oceanic) {
-        plateColor.lerp(lerpColor.set(0x2d75b0), 0.9)
-      }
-      if (showPlateBoundaries && plate.borderRegionsIds.has(region.id)) {
-        plateColor.lerp(lerpColor.set("red"), 0.6)
+      if (!showPlateColors) {
+        plateColor.set(ramp.get(h))
+      } else {
+        plateColor.set(seededRandom(plate.id) * 0xffffff)
+        plateColor.lerp(
+          regionColor.set(seededRandom(hashStringToInt(region.id)) * 0xffffff),
+          0.5,
+        )
+        plateColor.lerp(ramp.get(h), 0.8)
+        // if (region.type === PlateType.Continental) {
+        //   plateColor.lerp(lerpColor.set(0x175515), 0.9)
+        // }
+        // if (region.type === PlateType.Oceanic) {
+        //   plateColor.lerp(lerpColor.set(0x2d75b0), 0.9)
+        // }
+        if (showPlateBoundaries && plate.borderRegionsIds.has(region.id)) {
+          plateColor.lerp(lerpColor.set("red"), 0.6)
+        }
       }
       return plateColor
     }

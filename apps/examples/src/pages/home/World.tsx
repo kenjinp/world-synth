@@ -15,10 +15,13 @@ import { useMemo, useRef } from "react"
 import CustomShaderMaterial from "three-custom-shader-material"
 import { ChunkDebugger } from "../../components/ChunkDebugger"
 import Worker from "./Home.worker?worker"
+import { AXIAL_TILT } from "./math/earth"
+import { rotateVectorByEuler } from "./math/rotation"
 import { useGeology } from "./model/geology/Geology.provider"
 
 const worker = () => new Worker()
 
+const tempVector3 = new Vector3()
 const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
   seed,
   children,
@@ -36,6 +39,7 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
     subgridAlpha,
     useShadows,
     showPlateBoundaries,
+    showPlateColors,
   } = useControls({
     lineWidth: {
       value: 1,
@@ -62,6 +66,7 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
     },
     showPlateBoundaries: false,
     useShadows: true,
+    showPlateColors: false,
   })
 
   const data = useMemo(() => {
@@ -69,12 +74,19 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
       geology: geology.serialize(),
       seed,
       showPlateBoundaries,
+      showPlateColors,
     }
-  }, [seed, geology.id, generated, showPlateBoundaries])
+  }, [seed, geology.id, generated, showPlateBoundaries, showPlateColors])
+
+  const lodOrigin = useMemo(() => {
+    return rotateVectorByEuler(tempVector3.copy(camera.position), AXIAL_TILT)
+  }, [camera.position])
+
   useFrame(() => {
     if (planet.current) {
       planet.current.material.uniforms.uRegionId.value = geology.hoverId
     }
+    rotateVectorByEuler(lodOrigin.copy(camera.position), AXIAL_TILT)
   })
 
   console.log("world", geology.id, { generated, geology })
@@ -124,7 +136,7 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
           radius={EARTH_RADIUS}
           minCellSize={2 ** 8}
           minCellResolution={2 ** 6}
-          lodOrigin={camera.position}
+          lodOrigin={lodOrigin}
           worker={worker}
           data={data}
         >
