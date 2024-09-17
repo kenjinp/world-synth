@@ -1,3 +1,4 @@
+import { shuffle } from "@hello-worlds/core"
 import { LatLong, Noise } from "@hello-worlds/planets"
 import { rhumbBearing } from "@turf/turf"
 import { Vector3 } from "three"
@@ -133,7 +134,7 @@ export function* floodfillPlates(
 
   // while the fronts still have enqueued Regions to process, we will continue
   while (fronts.reduce((memo, q) => memo || !q.isEmpty, false) && !quitCond) {
-    // fronts = shuffle<typeof fronts>(fronts)
+    fronts = shuffle<typeof fronts>(fronts)
     for (const front of fronts) {
       const item = front.dequeue()
 

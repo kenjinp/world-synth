@@ -2,7 +2,7 @@ import { LatLong, remap } from "@hello-worlds/planets"
 import { Billboard, Line, Text } from "@react-three/drei"
 import { ThreeEvent } from "@react-three/fiber"
 import { useControls } from "leva"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Color,
   ColorRepresentation,
@@ -12,8 +12,10 @@ import {
 } from "three"
 import { UI } from "../../../../tunnel"
 import { AXIAL_TILT } from "../../math/earth"
+import { humanReadableDistance } from "../../math/measurements"
 import { rotateVectorByEuler } from "../../math/rotation"
 import { useGeology } from "./Geology.provider"
+import { printPressureTelemetry } from "./Geology.telemetry"
 import { CollisionType } from "./Geology.types"
 import { Region } from "./Region"
 import {
@@ -375,6 +377,10 @@ const Hotspots: React.FC = () => {
 export const GeologyDebug: React.FC = () => {
   const { geology } = useGeology()
   const [hovering, setHover] = useState(false)
+  useEffect(() => {
+    printPressureTelemetry(geology)
+  }, [geology])
+
   const { showHotspots, showTectonicMovement, showPlateBoundaries } =
     useControls({
       showHotspots: false,
@@ -410,6 +416,9 @@ export const GeologyDebug: React.FC = () => {
             Region: ${region.id}
           </p>
           <p>
+            Region last affected by: ${region.lastAffectedBy}
+          </p>
+          <p>
             Plate: ${region.plate?.id} ${plate?.plateType.toLocaleLowerCase()}
           </p>
           <p>
@@ -421,6 +430,11 @@ export const GeologyDebug: React.FC = () => {
           </p>
           <p>
            Normalized Elevation: ${region.elevation}
+          </p>
+          <p>
+          Elevation: ${humanReadableDistance(
+            remap(region.elevation, -1, 1, -8_000, 8_000),
+          )}
           </p>
         </div>
         `

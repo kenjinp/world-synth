@@ -1,77 +1,72 @@
-export function calculateCollidingElevation(
-  distanceToPlateBoundary: number,
-  distanceToPlateRoot: number,
-  boundaryElevation: number,
-  plateElevation: number,
-  pressure: number,
-  shear: number,
-) {
-  let t =
-    distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot)
-  if (t < 0.5) {
-    t = t / 1
-    return (
-      plateElevation +
-      Math.pow(t - 0.5, 2) * (boundaryElevation - plateElevation)
-    )
-  } else {
-    return plateElevation
-  }
-}
+import { EARTH_RADIUS } from "@hello-worlds/planets"
+import { easeInQuint, saturate } from "../../../math/easings"
+import { subductingSpline, superductingSpline } from "./BoundarySplines"
 
-export function calculateSuperductingElevation(
+// one for every 10 degrees arc along the equator
+const maxPlateDepthConstant = (2 * Math.PI * EARTH_RADIUS) / (18 * 2)
+export const getT = (
   distanceToPlateBoundary: number,
   distanceToPlateRoot: number,
-  boundaryElevation: number,
-  plateElevation: number,
-  pressure: number,
-  shear: number,
-) {
-  let t =
-    distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot)
-  if (t < 0.2) {
-    t = t / 100
-    return (
-      boundaryElevation +
-      t * (plateElevation - boundaryElevation + pressure / 2)
-    )
-  } else if (t < 0.5) {
-    t = (t - t * 0.1) / 100
-    return plateElevation + (Math.pow(t, 2) * pressure) / 2
-  } else {
-    return plateElevation
-  }
-}
-
-export function calculateSubductingElevation(
-  distanceToPlateBoundary: number,
-  distanceToPlateRoot: number,
-  boundaryElevation: number,
-  plateElevation: number,
-  pressure: number,
-  shear: number,
-) {
-  let t =
-    distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot)
-  return (
-    plateElevation + Math.pow(t * 0.2, 2) * (boundaryElevation - plateElevation)
+) => {
+  return saturate(
+    distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot),
   )
 }
 
-export function calculateDivergingElevation(
-  distanceToPlateBoundary: number,
-  distanceToPlateRoot: number,
+export function calculateCollidingElevation(
+  t: number,
+  // distanceToPlateRoot: number,
+  boundaryElevation: number,
+  plateElevation: number,
+) {
+  return (
+    plateElevation + Math.pow(1.0 - t, 2) * (boundaryElevation - plateElevation)
+  )
+}
+
+export function calculateSuperductingElevation(
+  t: number,
+  oppositeRegionElevation: number,
   boundaryElevation: number,
   plateElevation: number,
   pressure: number,
-  shear: number,
 ) {
-  let t =
-    distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot)
+  return superductingSpline(
+    boundaryElevation,
+    pressure,
+    plateElevation,
+    oppositeRegionElevation,
+  )(t)
+}
+
+export function calculateSubductingElevation(
+  t: number,
+  oppositeRegionElevation: number,
+  boundaryElevation: number,
+  plateElevation: number,
+  pressure: number,
+) {
+  // simulate accretion arc
+  // simulate subduction trenches
+  // slope back upwards
+  return subductingSpline(
+    boundaryElevation,
+    pressure,
+    plateElevation,
+    oppositeRegionElevation,
+  )(t)
+}
+
+export function calculateDivergingElevation(
+  t: number,
+  boundaryElevation: number,
+  plateElevation: number,
+) {
   if (t < 0.3) {
     t = t / 0.3
     return (
-      plateElevation + Math.pow(t - 1, 2) * (boundaryElevation - plateElevation)
+      plateElevation +
+      easeInQuint(Math.pow(t - 1, 2) * (boundaryElevation - plateElevation))
     )
   } else {
     return plateElevation
@@ -79,16 +74,11 @@ export function calculateDivergingElevation(
 }
 
 export function calculateShearingElevation(
-  distanceToPlateBoundary: number,
-  distanceToPlateRoot: number,
+  t: number,
   boundaryElevation: number,
   plateElevation: number,
-  pressure: number,
-  shear: number,
 ) {
-  let t =
-    distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot)
-  if (t < 0.2) {
+  if (t < 0.01) {
     t = t / 0.2
     return (
       plateElevation + Math.pow(t - 1, 2) * (boundaryElevation - plateElevation)
@@ -99,15 +89,12 @@ export function calculateShearingElevation(
 }
 
 export function calculateDormantElevation(
-  distanceToPlateBoundary: number,
-  distanceToPlateRoot: number,
+  t: number,
   boundaryElevation: number,
   plateElevation: number,
-  pressure: number,
-  shear: number,
 ) {
-  let t =
-    distanceToPlateBoundary / (distanceToPlateBoundary + distanceToPlateRoot)
   let elevationDifference = boundaryElevation - plateElevation
-  return t * t * elevationDifference * (2 * t - 3) + boundaryElevation
+  const newElevation =
+    t * t * elevationDifference * (2 * t - 3) + boundaryElevation
+  return newElevation
 }

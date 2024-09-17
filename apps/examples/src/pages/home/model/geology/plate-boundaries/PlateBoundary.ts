@@ -1,16 +1,20 @@
 import { LatLong } from "@hello-worlds/planets"
-import { length, lineString } from "@turf/turf"
-import { Vector3 } from "three"
+import { length, lineString, point, pointToLineDistance } from "@turf/turf"
+import { Line3, Vector3 } from "three"
 import { MapSet, findAllInSet } from "../../../../../lib/map-set/MapSet"
 import { CollisionType, IGeology, IPlate, IRegion } from "../Geology.types"
+
+const tempLine3 = new Line3()
+const tempLatLonA = new LatLong()
+const tempLatLonB = new LatLong()
 
 // An edge between to plates!
 export class PlateBoundaryEdge {
   id: string
   next?: string
   prev?: string
-  cartA: Vector3 = new Vector3()
-  cartB: Vector3 = new Vector3()
+  cartA: Vector3
+  cartB: Vector3
   forceA: { pressure: number; shear: number; collisionType: CollisionType } = {
     pressure: 0,
     shear: 0,
@@ -35,8 +39,8 @@ export class PlateBoundaryEdge {
   ) {
     this.id = PlateBoundaryEdge.makeKey(latLongA, latLongB)
     const radius = geology.params.radius
-    this.cartA = latLongA.toCartesian(radius, this.cartA)
-    this.cartB = latLongB.toCartesian(radius, this.cartB)
+    this.cartA = latLongA.toCartesian(radius, new Vector3())
+    this.cartB = latLongB.toCartesian(radius, new Vector3())
     this.vector = this.cartA.clone().sub(this.cartB).normalize()
     this.normal = this.cartA.clone().cross(this.cartB).normalize()
     this.#geology = geology
@@ -52,6 +56,13 @@ export class PlateBoundaryEdge {
     ]
       .sort()
       .join("|")
+  }
+
+  getOppositeRegion(region: IRegion) {
+    if (region.id === this.regionA.id) {
+      return this.regionB
+    }
+    return this.regionA
   }
 
   getLength() {
@@ -97,19 +108,27 @@ export class PlateBoundaryEdge {
   }
 
   calculateDistanceToRegion(region: IRegion) {
-    const center = region.getCenterVector3(this.#geology.params.radius)
-    const distanceA = center.distanceTo(this.cartA)
-    const distanceB = center.distanceTo(this.cartB)
-    return Math.min(distanceA, distanceB)
+    const llR = region.getCenterCoordinates(tempLatLonA)
+    const pt = point([llR.lon, llR.lat])
+    const line = lineString([
+      [this.latLongA.lon, this.latLongA.lat],
+      [this.latLongB.lon, this.latLongB.lat],
+    ])
+
+    const distance = pointToLineDistance(pt, line, { units: "meters" })
+    return distance
   }
 
   calculateDistanceToPlateRoot(region: IRegion) {
-    const center = region.plate!.initialRegion.getCenterVector3(
-      this.#geology.params.radius,
-    )
-    const distanceA = center.distanceTo(this.cartA)
-    const distanceB = center.distanceTo(this.cartB)
-    return Math.min(distanceA, distanceB)
+    const center = region.getCenterCoordinates(tempLatLonA)
+    const pt = point([center.lon, center.lat])
+    const line = lineString([
+      [this.latLongA.lon, this.latLongA.lat],
+      [this.latLongB.lon, this.latLongB.lat],
+    ])
+
+    const distance = pointToLineDistance(pt, line, { units: "meters" })
+    return distance
   }
 
   calculateStressAtPoint(point: Vector3) {

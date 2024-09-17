@@ -1,5 +1,8 @@
 import { remap } from "@hello-worlds/planets"
-import { AREA_EARTH } from "../../math/earth"
+import {
+  AREA_EARTH,
+  CONTINENTAL_SHELF_OCEAN_PERCENTAGE,
+} from "../../math/earth"
 import { floodfillPlates } from "./Geology.floodfill"
 import { GeologyEventType, IGeology, PlateType } from "./Geology.types"
 import { Plate } from "./Plate"
@@ -14,6 +17,7 @@ export function generate(
   console.time("Generate")
   const createPlatesIterator = createPlates(geology)
   const createContinentalCrustIterator = createContinentalCrust(geology)
+  const createContinentalShelfIterator = createContinentalShelf(geology)
   const createOceanicCrustIterator = createOceanicCrust(geology)
   const createOceanicPlatesIterator = createOceanicPlates(geology)
   const fillUnassignedPlatesIterator = fillUnassignedPlates(geology)
@@ -37,6 +41,10 @@ export function generate(
 
   doIterator(createPlatesIterator, GeologyEventType.CreatePlates)
   doIterator(createContinentalCrustIterator, GeologyEventType.CreateContinents)
+  doIterator(
+    createContinentalShelfIterator,
+    GeologyEventType.CreateContinentalShelf,
+  )
   doIterator(createOceanicCrustIterator, GeologyEventType.CreateOceans)
   doIterator(createOceanicPlatesIterator, GeologyEventType.CreateOceanicPlates)
   doIterator(
@@ -79,6 +87,7 @@ function* createPlates(geology: IGeology) {
 
 function* createContinentalCrust(geology: IGeology) {
   // grow crust until we reach a certain percentage of land
+
   let currentAreaAsPercentageOfTarget
   yield 0.0
   const iterator = floodfillPlates(
@@ -101,6 +110,50 @@ function* createContinentalCrust(geology: IGeology) {
     (region, plate) => {
       region.type = PlateType.Continental
       region.elevation = plate.landElevation
+    },
+  )
+
+  let iterate = iterator.next()
+  let tries = 0
+  while (!iterate.done) {
+    yield currentAreaAsPercentageOfTarget
+    iterate = iterator.next()
+    tries++
+  }
+}
+
+function* createContinentalShelf(geology: IGeology) {
+  // grow crust until we reach a certain percentage of land
+  yield 0.0
+  const startingLandArea = geology.plates.reduce(
+    (acc, plate) => acc + plate.getArea(),
+    0,
+  )
+  const areaContinentalShelfTarget =
+    geology.params.percentOcean *
+    AREA_EARTH *
+    CONTINENTAL_SHELF_OCEAN_PERCENTAGE
+  let currentAreaAsPercentageOfTarget
+  const iterator = floodfillPlates(
+    geology,
+    {
+      noiseValue: 1.2,
+      maxCost: 1,
+      distanceScoreBias: 3.0,
+      bearingScoreBias: 0.5,
+    },
+    function quitCondition() {
+      const newArea = geology.plates.reduce(
+        (acc, plate) => acc + plate.getArea(),
+        0,
+      )
+      const shelfArea = newArea - startingLandArea
+      currentAreaAsPercentageOfTarget = shelfArea / areaContinentalShelfTarget
+      return currentAreaAsPercentageOfTarget >= 1.0
+    },
+    (region, plate) => {
+      region.type = PlateType.Continental_Shelf
+      region.elevation = plate.shelfElevation
     },
   )
 
@@ -195,15 +248,18 @@ function* calculateBoundaryStress(geology: IGeology) {
     yield percentDone
     i++
   }
+  console.log("calculateBoundaryStress done")
 }
 
 function* calculateRegionalElevation(geology: IGeology) {
+  console.log("calculateRegionalElevation start")
   const iterator = floodfillElevations(geology)
   let iterate = iterator.next()
   while (!iterate.done) {
     iterate = iterator.next()
-    yield iterate
+    yield iterate.value
   }
+  console.log("calculateRegionalElevation stop")
 }
 
 function* createHotspots(geology: IGeology) {

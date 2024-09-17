@@ -8,6 +8,7 @@ export enum GeologyEventType {
   Generate = "Generate",
   CreatePlates = "CreatePlates",
   CreateContinents = "CreateContinents",
+  CreateContinentalShelf = "CreateContinentalShelf",
   CreateOceans = "CreateOceans",
   CreateOceanicPlates = "CreateOceanicPlates",
   CreateHotspots = "CreateHotspots",
@@ -20,6 +21,8 @@ export enum CollisionType {
   Dormant = "Dormant",
   Divergent = "Divergent",
   Convergent = "Convergent",
+  Subducting = "Subducting",
+  Superducting = "Superducting",
   Transform = "Transform",
 }
 
@@ -72,6 +75,7 @@ export interface IGeology {
 
 export enum PlateType {
   Oceanic = "Oceanic",
+  Continental_Shelf = "Continental_Shelf",
   Continental = "Continental",
   Hybrid = "Hybrid",
 }
@@ -81,6 +85,7 @@ export interface IRegion {
   polygon: SphericalPolygon
   plate?: IPlate
   type?: PlateType
+  lastAffectedBy?: CollisionType
   elevation: number
   getArea: () => number
   assignPlate: (plate: IPlate) => void
@@ -107,6 +112,7 @@ export interface IPlate {
   borderRegionsIds: Set<string>
   growthBias: number
   landElevation: number
+  shelfElevation: number
   oceanElevation: number
   addRegion: (region: IRegion) => void
   getArea: () => number

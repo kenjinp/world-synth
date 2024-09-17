@@ -1,9 +1,10 @@
 import { randomRange } from "@hello-worlds/core"
-import { LatLong } from "@hello-worlds/planets"
+import { LatLong, remap } from "@hello-worlds/planets"
 import { lineString, point, pointToLineDistance } from "@turf/turf"
 import { Vector3 } from "three"
 import { MapSet } from "../../../../lib/map-set/MapSet"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
+import { AVG_OCEAN_DEPTH_NORMALIZED } from "../../math/earth"
 import { IGeology, IPlate, IRegion, PlateType } from "./Geology.types"
 import { Region } from "./Region"
 import { REGION_AREA } from "./config"
@@ -38,8 +39,15 @@ export class Plate implements IPlate {
   boundaryVertices = new Set<LatLong[]>()
   neighboringBoundaryRegions = new MapSet<IPlate, IRegion>()
   growthBias: number
-  landElevation: number = randomRange(0.000006, 0.03)
-  oceanElevation: number = randomRange(-0.5, -0.1)
+  landElevation: number = randomRange(0.000006, 0.05)
+  shelfElevation: number = randomRange(
+    remap(-250, -8_000, 8_000, -1, 1),
+    remap(-100, -8_000, 8_000, -1, 1),
+  )
+  oceanElevation: number = randomRange(
+    AVG_OCEAN_DEPTH_NORMALIZED - 0.05,
+    AVG_OCEAN_DEPTH_NORMALIZED + 0.05,
+  ) //randomRange(-0.5, -0.1)
   #geology: IGeology
   constructor(
     public readonly id: number,

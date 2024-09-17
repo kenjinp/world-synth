@@ -14,7 +14,7 @@ import {
 import { Vector3 } from "three"
 import { integerToRGB } from "../../images/Color"
 import { SphericalPolygon } from "../../math/SphericalPolygon"
-import { IPlate, IRegion, PlateType } from "./Geology.types"
+import { CollisionType, IPlate, IRegion, PlateType } from "./Geology.types"
 import { REGION_AREA, RESOLUTION } from "./config"
 
 const regionMap = new Map<string, Region>()
@@ -29,6 +29,7 @@ export class Region implements IRegion {
   #centerVec3?: Vector3
   age: number = 0
   elevation: number = 0
+  lastAffectedBy?: CollisionType
   constructor(public readonly id: string) {
     if (!isValidCell(id)) {
       throw new Error("Invalid cell id, must sbe a valid h3 cell")
@@ -130,6 +131,7 @@ export class Region implements IRegion {
     r.type = region.type
     r.plate = region.plate
     r.elevation = region.elevation
+    r.lastAffectedBy = region.lastAffectedBy
     return r
   }
 

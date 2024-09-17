@@ -64,7 +64,7 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
       max: 10_0000,
       step: 500,
     },
-    showPlateBoundaries: false,
+    showPlateBoundaries: true,
     useShadows: true,
     showPlateColors: false,
   })
@@ -402,13 +402,13 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
               float combinedGrid = grid + grid2 + grid3 + contourGrid;
 
               vec3 whiteGridColors = mix(color, vec3(1.0), combinedGrid);
-
-              float primeMeridian = getGridFromFloat(latlongUV.y, 0.5, lineWidth * 2.0);
-              float equator = getGridFromFloat(latlongUV.x, 0.5, lineWidth * 2.0);
-              float tropicCapricorn = getGridFromFloat(latlongUV.x + remap(tropicLines.x, -90., 90., 0., 1.), 1.0, lineWidth * 2.0);
-              float tropicCancer = getGridFromFloat(latlongUV.x + remap(tropicLines.y, -90., 90., 0., 1.), 1.0, lineWidth * 2.0);
-              float arcticCircle = getGridFromFloat(latlongUV.x + remap(arcticCircleLines.x, -90., 90., 0., 1.), 1.0 , lineWidth * 2.0);
-              float antarcticCircle = getGridFromFloat(latlongUV.x + remap(arcticCircleLines.y, -90., 90., 0., 1.), 1.0, lineWidth * 2.0);
+              float specialGridWidth = 1.5;
+              float primeMeridian = getGridFromFloat(latlongUV.y, 0.5, lineWidth * specialGridWidth);
+              float equator = getGridFromFloat(latlongUV.x, 0.5, lineWidth * specialGridWidth);
+              float tropicCapricorn = getGridFromFloat(latlongUV.x + remap(tropicLines.x, -90., 90., 0., 1.), 1.0, lineWidth * specialGridWidth);
+              float tropicCancer = getGridFromFloat(latlongUV.x + remap(tropicLines.y, -90., 90., 0., 1.), 1.0, lineWidth * specialGridWidth);
+              float arcticCircle = getGridFromFloat(latlongUV.x + remap(arcticCircleLines.x, -90., 90., 0., 1.), 1.0 , lineWidth * specialGridWidth);
+              float antarcticCircle = getGridFromFloat(latlongUV.x + remap(arcticCircleLines.y, -90., 90., 0., 1.), 1.0, lineWidth * specialGridWidth);
               float combinedGrid2 = primeMeridian + equator;
               float tropics = tropicCapricorn + tropicCancer;
               float polarCircles = arcticCircle + antarcticCircle;

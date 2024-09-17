@@ -26,6 +26,9 @@ export const GeologyProgress: React.FC = () => {
       if (eventType === GeologyEventType.CreateContinents) {
         message = "Generating Continental Crust..."
       }
+      if (eventType === GeologyEventType.CreateContinentalShelf) {
+        message = "Generating Continental Shelf..."
+      }
       if (eventType === GeologyEventType.CreateOceans) {
         message = "Generating Oceanic Crust..."
       }
