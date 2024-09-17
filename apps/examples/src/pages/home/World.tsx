@@ -1,5 +1,10 @@
-import { EARTH_RADIUS, Planet as HelloPlanet } from "@hello-worlds/planets"
-import { OrbitCamera, Planet } from "@hello-worlds/react"
+import {
+  EARTH_RADIUS,
+  Planet as HelloPlanet,
+  LatLong,
+  remap,
+} from "@hello-worlds/planets"
+import { Planet } from "@hello-worlds/react"
 import { useFrame, useThree } from "@react-three/fiber"
 import {
   Euler,
@@ -11,15 +16,81 @@ import {
 
 import { Line, useTexture } from "@react-three/drei"
 import { useControls } from "leva"
-import { useMemo, useRef } from "react"
+import React, { useMemo, useRef } from "react"
 import CustomShaderMaterial from "three-custom-shader-material"
+import { useSound } from "use-sound"
 import { ChunkDebugger } from "../../components/ChunkDebugger"
+import { OrbitCamera } from "../../components/OrbitCamera"
 import Worker from "./Home.worker?worker"
 import { AXIAL_TILT } from "./math/earth"
 import { rotateVectorByEuler } from "./math/rotation"
 import { useGeology } from "./model/geology/Geology.provider"
 
 const worker = () => new Worker()
+const origin = new Vector3()
+
+const getAltitudeFromOrigin = (origin: Vector3, position: Vector3) => {
+  return position.distanceTo(origin)
+}
+
+const PlayZoomSound: React.FC = () => {
+  const [play, { sound }] = useSound("/small-click.mp3")
+  const camera = useThree(state => state.camera)
+  const controls = useThree(state => state.controls)
+  const prevAltitude = useRef(0)
+
+  useFrame(() => {
+    const deltaAltitude = getAltitudeFromOrigin(origin, camera.position)
+    // play the sound each time the altitude changes by 1000 meters
+    if (Math.abs(deltaAltitude - prevAltitude.current) > 1000) {
+      const playbackFudgeRate = 0.2
+      play({
+        playbackRate: 1 + Math.random() * playbackFudgeRate,
+      })
+      prevAltitude.current = deltaAltitude
+    }
+  })
+
+  return null
+}
+
+const ll = [new LatLong(0, 0), new LatLong(0, 0)]
+const PlayLatLongSound: React.FC = () => {
+  const [play, { sound }] = useSound("/big-click.mp3", { volume: 0.5 })
+  const camera = useThree(state => state.camera)
+  const prevAltitude = useRef(0)
+  const [prevLatLong, currentLatLong] = ll
+
+  useFrame(() => {
+    LatLong.cartesianToLatLong(camera.position, currentLatLong)
+    // play the sound each time the altitude changes by 1000 meters
+    const deltaLat = Math.abs(currentLatLong.lat - prevLatLong.lat)
+    const deltaLon = Math.abs(currentLatLong.lon - prevLatLong.lon)
+
+    console.log(currentLatLong)
+    if (deltaLat > 5) {
+      const playbackFudgeRate = Math.random() * 0.1
+
+      play({
+        playbackRate:
+          remap(Math.abs(currentLatLong.lat), 0, 90, 0.8, 1.2) +
+          playbackFudgeRate,
+      })
+      prevLatLong.lat = currentLatLong.lat
+    }
+    if (deltaLon > 5) {
+      const playbackFudgeRate = Math.random() * 0.1
+      play({
+        playbackRate:
+          remap(Math.abs(currentLatLong.lon), 0, 180, 0.8, 1.2) +
+          playbackFudgeRate,
+      })
+      prevLatLong.lon = currentLatLong.lon
+    }
+  })
+
+  return null
+}
 
 const tempVector3 = new Vector3()
 const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
@@ -109,6 +180,8 @@ const World: React.FC<React.PropsWithChildren<{ seed: string }>> = ({
 
   return generated && geology.generated ? (
     <group>
+      <PlayZoomSound />
+      <PlayLatLongSound />
       <Line
         points={[
           new Vector3(0, EARTH_RADIUS * 1.5, 0),

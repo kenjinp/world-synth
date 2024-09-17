@@ -26,7 +26,8 @@
     "rtree": "^1.4.2",
     "three-csm": "^4.2.1",
     "ts-pattern": "^5.0.6",
-    "tunnel-rat": "^0.1.2"
+    "tunnel-rat": "^0.1.2",
+    "use-sound": "^4.0.3"
   },
   "devDependencies": {
     "@types/poisson-disk-sampling": "^2.2.4",
